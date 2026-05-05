@@ -1,11 +1,13 @@
-"""CLI for pGermlinePoly Estimation in VCF."""
+"""CLI for simulation and likelihood inference in"""
 
 import logging
 
+from cointf import Stahl, SimStahl
 import rich_click as click
 import numpy as np
 from tqdm import tqdm
 import sys
+
 
 # Setup the logging configuration for the CLI
 logging.basicConfig(
@@ -13,6 +15,15 @@ logging.basicConfig(
     level=logging.INFO,
     datefmt="%Y-%m-%d %H:%M:%S",
 )
+
+
+@click.group(context_settings={"help_option_names": ["-h", "--help"]})
+def main() -> None:
+    """
+    Command-line interface for the **cointf** model.
+
+    Use `simulate` to simulate data and `infer` to estimate parameters under the model.
+    """
 
 
 @main.command()
@@ -90,7 +101,7 @@ def infer(
     input,
     out,
 ):
-    """C"""
+    """CLI for inference under the Houseworth-Stahl model."""
     pass
 
 

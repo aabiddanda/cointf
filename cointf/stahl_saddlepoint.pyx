@@ -228,9 +228,8 @@ def h_mixture(double x, double nu, double p):
 
 def loglik_meiosis(xs, double L, double nu, double p):
     """For a single-meiosis calculate the log-likeliood under the stahl model."""
-    cdef double ll
     cdef int j
-    cdef double x0, xn, lp, g_val, S_val, h_val
+    cdef double ll, x0, xn, g_val, S_val, h_val
     cdef double Fp0, Fu0, Fpn, Fun
     if xs.size == 0:
         #The case of no observed crossovers.
@@ -253,7 +252,7 @@ def loglik_meiosis(xs, double L, double nu, double p):
         Fun = _Fstar_lr(xn, nu)
         S_val = p * (1.0 - Fpn) + (1.0 - p) * (1.0 - Fun)
 
-        lp = (log(g_val) if g_val > 0.0 else -INFINITY)
+        ll = (log(g_val) if g_val > 0.0 else -INFINITY)
         if S_val > 0.0:
             ll += log(S_val)
         else:
