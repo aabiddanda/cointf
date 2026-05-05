@@ -12,13 +12,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cointf"
-description = "Package for crossover "
+description = "Package for inferring parameters of crossover interference from data."
 keywords = ["haplotypes", "recombination", "phasing"]
 classifiers = ["Development Status :: 3 - Alpha", "Intended Audience :: Science/Research", "Programming Language :: Python :: 3"]
 requires-python = ">= 3.11"
 dependencies = ["numpy", "scipy", "polars", "Cython", "rich_click"]
 dynamic = ["version"]
-authors = [{name = "Arjun Biddanda", email = "abiddan1@jhu.edu"}]
+authors = [{name = "Arjun Biddanda", email = "aabiddanda@gmail.com"}]
 
 [project.urls]
 Homepage = "https://github.com/aabiddanda/cointf"
