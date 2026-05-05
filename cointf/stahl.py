@@ -8,7 +8,7 @@ class Stahl:
         """Implementation of Stahl et al Model."""
         self.phat
 
-    def loglik(self, data, p=0.1, nu=2):
+    def loglik(self, data, L, p=0.1, nu=2):
         """Calculate the log-likelihood of the meioses under the Houseworth-Stahl model.
 
         Data is a list of lists.
@@ -31,3 +31,13 @@ class Stahl:
             **kwargs,
         )
         return opt_res.x
+
+    def est_confint(self, data, L, **kwargs):
+        """Estimate confidence intervals for parameters using profile-likelihoods"""
+        pass
+
+    def likelihood_ratio(self, data, L, p=0.1):
+        """Estimating the likelihood between this model and the model with no interference."""
+        ll_tot = self.loglik(data, L, p=p)
+        ll_null = self.loglik(data, L, p=0.0)
+        return ll_tot, ll_null
