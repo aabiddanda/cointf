@@ -183,8 +183,8 @@ cdef double _Fstar_lr(double x, double nu) nogil:
         #   kappa3 = K'''(0) = (nu+1)(nu+2)/(4*nu^2) + 1/2  [analytic]
         kappa2 = (nu + 1.0) / (2.0 * nu)
         kappa3 = (nu + 1.0) * (nu + 2.0) / (4.0 * nu * nu) + 0.5
-        sd     = sqrt(kappa2)
-        z      = (x - 1.0) / sd
+        sd = sqrt(kappa2)
+        z = (x - 1.0) / sd
         skew_c = kappa3 / (6.0 * kappa2 * sd)
         v = _norm_cdf(z) + _norm_pdf(z) * skew_c * (1.0 - z * z)
         if v < 0.0: v = 0.0
@@ -220,8 +220,10 @@ cdef double _h_mixture(double x, double nu, double p) nogil:
 
 def h_mixture(double x, double nu, double p):
     """Two-pathway mixture density h(x; nu, p) — scalar."""
-    if nu <= 0.0: raise ValueError("nu must be > 0.")
-    if p < 0.0 or p > 1.0: raise ValueError("p must be in [0,1].")
+    if nu <= 0.0:
+        raise ValueError("nu must be > 0.")
+    if (p < 0.0) or (p > 1.0):
+        raise ValueError("p must be in [0,1].")
     return _h_mixture(x, nu, p)
 
 def loglik_meiosis(xs, double L, double nu, double p):
@@ -231,24 +233,24 @@ def loglik_meiosis(xs, double L, double nu, double p):
     cdef double x0, xn, lp, g_val, S_val, h_val
     cdef double Fp0, Fu0, Fpn, Fun
     if xs.size == 0:
-        """The case of no observed crossovers."""
-        Fpn   = _Fstar_lr(L, 1.0)
-        Fun   = _Fstar_lr(L, nu)
+        #The case of no observed crossovers.
+        Fpn = _Fstar_lr(L, 1.0)
+        Fun = _Fstar_lr(L, nu)
         S_val = p * (1.0 - Fpn) + (1.0 - p) * (1.0 - Fun)
         if S_val > 0.0:
             ll += log(S_val)
     else:
-        """At least a single-crossover available for analysis."""
+        #At least a single-crossover available for analysis.
         x0 = xs[0]
         xn = L - xs[-1]
         # g(x0) = p*(1-F*(x0;1)) + (1-p)*(1-F*(x0;nu))
-        Fp0   = _Fstar_lr(x0, 1.0)
-        Fu0   = _Fstar_lr(x0, nu)
+        Fp0 = _Fstar_lr(x0, 1.0)
+        Fu0 = _Fstar_lr(x0, nu)
         g_val = p * (1.0 - Fp0) + (1.0 - p) * (1.0 - Fu0)
 
         # S(xn) = p*(1-F*(xn;1)) + (1-p)*(1-F*(xn;nu))
-        Fpn   = _Fstar_lr(xn, 1.0)
-        Fun   = _Fstar_lr(xn, nu)
+        Fpn = _Fstar_lr(xn, 1.0)
+        Fun = _Fstar_lr(xn, nu)
         S_val = p * (1.0 - Fpn) + (1.0 - p) * (1.0 - Fun)
 
         lp = (log(g_val) if g_val > 0.0 else -INFINITY)
@@ -260,70 +262,3 @@ def loglik_meiosis(xs, double L, double nu, double p):
             h_val = _h_mixture(xs[j] - xs[j-1], nu, p)
             ll += (log(h_val) if h_val > 0.0 else -INFINITY)
     return ll
-
-
-
-
-
-# ── Log-likelihood over M independent meioses ─────────────────────────────────
-#
-# Contribution of meiosis i:
-#   log g(x0; nu,p) + sum_j log h(xj; nu,p) + log S(xn; nu,p)
-# where g and S use survival functions of f*.
-
-# def loglik(cnp.ndarray[cnp.float64_t, ndim=1] gaps,
-#            cnp.ndarray[cnp.int32_t,   ndim=1] n_gaps,
-#            cnp.ndarray[cnp.float64_t, ndim=1] left_tails,
-#            cnp.ndarray[cnp.float64_t, ndim=1] right_tails,
-#            int n_meioses,
-#            double nu, double p):
-#     """
-#     Total log-likelihood sum_i log P(data_i | nu, p).
-
-#     Parameters
-#     ----------
-#     gaps        : concatenated interior inter-crossover gaps (all meioses)
-#     n_gaps      : number of interior gaps per meiosis (int32, length M)
-#     left_tails  : x0 = distance to first crossover (length M)
-#     right_tails : xn = distance from last crossover to end (length M)
-#     n_meioses   : M
-#     nu, p       : model parameters
-#     """
-#     if nu <= 0.0: raise ValueError("nu must be > 0.")
-#     if p < 0.0 or p > 1.0: raise ValueError("p must be in [0,1].")
-
-#     cdef double ll = 0.0
-#     cdef int i, j, offset, ng
-#     cdef double x0, xn, lp, g_val, S_val, h_val
-#     cdef double Fp0, Fu0, Fpn, Fun
-
-#     offset = 0
-#     for i in range(n_meioses):
-#         x0 = left_tails[i]
-#         xn = right_tails[i]
-#         ng = n_gaps[i]
-
-#         # g(x0) = p*(1-F*(x0;1)) + (1-p)*(1-F*(x0;nu))
-#         Fp0   = _Fstar_lr(x0, 1.0)
-#         Fu0   = _Fstar_lr(x0, nu)
-#         g_val = p * (1.0 - Fp0) + (1.0 - p) * (1.0 - Fu0)
-
-#         # S(xn) = p*(1-F*(xn;1)) + (1-p)*(1-F*(xn;nu))
-#         Fpn   = _Fstar_lr(xn, 1.0)
-#         Fun   = _Fstar_lr(xn, nu)
-#         S_val = p * (1.0 - Fpn) + (1.0 - p) * (1.0 - Fun)
-
-#         lp = (log(g_val) if g_val > 0.0 else -INFINITY)
-#         if S_val > 0.0:
-#             lp += log(S_val)
-#         else:
-#             lp = -INFINITY
-
-#         for j in range(ng):
-#             h_val = _h_mixture(gaps[offset + j], nu, p)
-#             lp += (log(h_val) if h_val > 0.0 else -INFINITY)
-
-#         offset += ng
-#         ll     += lp
-
-#     return ll

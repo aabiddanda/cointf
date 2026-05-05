@@ -6,7 +6,6 @@ from Cython.Build import cythonize
 from setuptools import setup
 
 extensions = [
-    Extension("stahl_utils", ["cointf/stahl_utils.pyx"]),
     Extension("stahl_saddlepoint", ["cointf/stahl_saddlepoint.pyx"]),
 ]
 
