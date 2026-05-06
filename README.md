@@ -1,6 +1,6 @@
 # `cointf`
 
-Fast implementation of likelihoods under the Houseworth-Stahl model of recombination.
+Fast implementation of likelihoods under the Houseworth-Stahl model of crossover interference.
 
 
 
