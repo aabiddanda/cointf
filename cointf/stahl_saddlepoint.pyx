@@ -259,6 +259,7 @@ def loglik_meiosis(xs, double L, double nu, double p):
         Fpn = _Fstar_lr(L, 1.0)
         Fun = _Fstar_lr(L, nu)
         S_val = p * (1.0 - Fpn) + (1.0 - p) * (1.0 - Fun)
+        ll = 0.0
         if S_val > 0.0:
             ll += log(S_val)
     else:

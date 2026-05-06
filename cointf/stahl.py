@@ -5,8 +5,8 @@ from stahl_saddlepoint import loglik_meiosis
 
 class Stahl:
     def __init__(self):
-        """Implementation of Stahl et al Model."""
-        self.phat
+        """Implementation of the Houseworth-Stahl Model for interference."""
+        pass
 
     def loglik(self, data, L, p=0.1, nu=2):
         """Calculate the log-likelihood of the meioses under the Houseworth-Stahl model.
@@ -19,7 +19,9 @@ class Stahl:
         assert len(data) > 1
         loglik = 0.0
         for d in data:
-            loglik += loglik_meiosis(d, p=p, nu=nu)
+            lp = loglik_meiosis(np.array(d, dtype=float), L=L, p=p, nu=nu)
+            print(lp, d)
+            loglik += lp
         return loglik
 
     def fit_stahl(self, data, L, **kwargs):
@@ -36,8 +38,8 @@ class Stahl:
         """Estimate confidence intervals for parameters using profile-likelihoods"""
         pass
 
-    def likelihood_ratio(self, data, L, p=0.1):
+    def likelihood_ratio(self, data, L, p=0.1, nu=2.0):
         """Estimating the likelihood between this model and the model with no interference."""
-        ll_tot = self.loglik(data, L, p=p)
-        ll_null = self.loglik(data, L, p=0.0)
+        ll_tot = self.loglik(data, L, p=p, nu=nu)
+        ll_null = self.loglik(data, L, p=0.0, nu=nu)
         return ll_tot, ll_null

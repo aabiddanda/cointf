@@ -93,9 +93,6 @@ def _poisson_crossovers(L: float, p: float, rng: np.random.Generator) -> np.ndar
     return np.sort(rng.uniform(0.0, L, size=n)) if n > 0 else np.empty(0)
 
 
-# ── Main public function ───────────────────────────────────────────────────────
-
-
 def simulate_meiosis(
     L: float,
     nu: float,
