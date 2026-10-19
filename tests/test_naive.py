@@ -4,7 +4,7 @@ import itertools
 
 import numpy as np
 import pytest
-from scipy.integrate import quad, dblquad
+from scipy.integrate import dblquad, quad
 from scipy.stats import gamma
 
 from cointf.naive import (
@@ -17,11 +17,11 @@ from cointf.naive import (
 from cointf.simintf import SimStahl
 
 
-def _fstar(x, nu):
+def fstar_value(x, nu):
     return np.exp(log_fstar(x, nu))[0]
 
 
-def _sstar(x, nu):
+def sstar_value(x, nu):
     return np.exp(log_sstar(x, nu))[0]
 
 
@@ -36,10 +36,10 @@ def brute_force_loglik(xs, L, nu, p):
         if not ys:
             dens *= np.exp(log_tail_integral(q * L, nu))
         else:
-            dens *= q * _sstar(q * ys[0], nu)
+            dens *= q * sstar_value(q * ys[0], nu)
             for a, b in zip(ys[:-1], ys[1:]):
-                dens *= q * _fstar(q * (b - a), nu)
-            dens *= _sstar(q * (L - ys[-1]), nu)
+                dens *= q * fstar_value(q * (b - a), nu)
+            dens *= sstar_value(q * (L - ys[-1]), nu)
         total += dens
     return np.log(total)
 
@@ -49,7 +49,7 @@ def test_fstar_matches_series():
         for x in [0.05, 0.5, 1.0, 3.0]:
             k = np.arange(1, 81)
             ref = np.sum(0.5**k * gamma.pdf(x, a=k * nu, scale=0.5 / nu))
-            assert _fstar(x, nu) == pytest.approx(ref, rel=1e-10)
+            assert fstar_value(x, nu) == pytest.approx(ref, rel=1e-10)
 
 
 def test_fstar_nu1_is_exponential():
@@ -62,7 +62,7 @@ def test_fstar_nu1_is_exponential():
 def test_tail_integral(nu):
     assert log_tail_integral(0.0, nu) == pytest.approx(0.0, abs=1e-10)
     for x in [0.3, 1.0, 2.5]:
-        ref, _ = quad(lambda u: _sstar(u, nu), x, np.inf)
+        ref, _ = quad(lambda u: sstar_value(u, nu), x, np.inf)
         assert np.exp(log_tail_integral(x, nu)) == pytest.approx(ref, rel=1e-6)
 
 
@@ -132,3 +132,11 @@ def test_testbed_loglik(testbed):
     # Reference values; update deliberately if the model definition changes.
     assert lls[nus.index(4.0)] == pytest.approx(-269.79, abs=0.01)
     assert nus[int(np.argmax(lls))] in (3.0, 4.0)
+
+
+@pytest.mark.parametrize(
+    "L,nu,p", [(0.0, 4.0, 0.1), (1.0, 0.0, 0.1), (1.0, 4.0, -0.1), (1.0, 4.0, 1.1)]
+)
+def test_invalid_parameters_raise(L, nu, p):
+    with pytest.raises(ValueError):
+        loglik_meiosis_naive([0.3], L, nu, p)
