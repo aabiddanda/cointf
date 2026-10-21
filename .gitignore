@@ -1,4 +1,5 @@
 sandbox/
+PROJECT.md
 nohup.out
 *.c
 *.so
