@@ -1,43 +1,28 @@
+"""Simulation of crossover positions under the Housworth-Stahl model.
+
+The interference pathway is a stationary renewal process with gap density
+``f*`` rescaled to rate ``1 - p``; the escape pathway is a homogeneous
+Poisson process with rate ``p``. Observed crossovers are their superposition.
+"""
+
 import numpy as np
 
-
-_KMAX = 200
-_ks = np.arange(1, _KMAX + 1, dtype=np.float64)
-_CMF = np.cumsum(_ks * 0.5 ** (_ks + 1))  # cumulative mass function, sum -> 1
+__all__ = ["simulate_meioses", "simulate_meiosis"]
 
 
-def _sample_K_batch(rng: np.random.Generator, size: int) -> np.ndarray:
+size_biased_kmax = 200
+size_biased_k = np.arange(1, size_biased_kmax + 1, dtype=np.float64)
+size_biased_cmf = np.cumsum(
+    size_biased_k * 0.5 ** (size_biased_k + 1)
+)  # cumulative mass function, sum -> 1
+
+
+def sample_size_biased_k(rng: np.random.Generator, size: int) -> np.ndarray:
     """Batch sample of K ~ P(K=k) = k*(1/2)^{k+1} by precomputed inverse CDF."""
-    return np.searchsorted(_CMF, rng.random(size)) + 1  # k in {1, 2, ...}
+    return np.searchsorted(size_biased_cmf, rng.random(size)) + 1  # k in {1, 2, ...}
 
 
-def _sample_excess_life(nu: float, rng: np.random.Generator) -> float:
-    """Sample the first crossover position from the stationary f*(x;nu) renewal.
-
-    The excess-life density is h(x; nu) = 1 - F*(x; nu).
-
-    Uses the inspection-paradox decomposition:
-        K  ~ P(K=k) = k*(1/2)^{k+1}   (size-biased geometric)
-        W  ~ Gamma(K*nu+1, rate=2*nu)  (size-biased f* component)
-        X0 = W * U,  U ~ Uniform[0,1]
-    """
-    K = int(_sample_K_batch(rng, 1)[0])
-    W = rng.gamma(shape=K * nu + 1.0, scale=0.5 / nu)
-    return W * rng.random()
-
-
-def _sample_fstar(nu: float, rng: np.random.Generator) -> float:
-    """Sample one inter-crossover gap from f*(x; nu).
-
-    f*(x; nu) = sum_{k>=1} (1/2)^k * Gamma(k*nu, rate=2*nu) density.
-    Method: K ~ Geometric(1/2) on {1,2,...}, then X ~ Gamma(K*nu, rate=2*nu).
-    Mean = E[K] * (1/2) = 2 * (1/2) = 1 Morgan.
-    """
-    k = rng.geometric(p=0.5)  # k in {1, 2, ...}
-    return rng.gamma(shape=k * nu, scale=0.5 / nu)
-
-
-def _interference_crossovers(
+def interference_crossovers(
     L: float,
     nu: float,
     p: float,
@@ -66,7 +51,7 @@ def _interference_crossovers(
 
     # First crossover: excess-life of the scaled renewal
     # Excess-life sampler: W ~ Gamma(K*nu+1, rate=2*nu*q), X0 = W*U
-    K = int(_sample_K_batch(rng, 1)[0])
+    K = int(sample_size_biased_k(rng, 1)[0])
     W = rng.gamma(shape=K * nu + 1.0, scale=scale)
     x = W * rng.random()
 
@@ -82,7 +67,7 @@ def _interference_crossovers(
 # ── Poisson-pathway crossovers on [0, L] ──────────────────────────────────────
 
 
-def _poisson_crossovers(L: float, p: float, rng: np.random.Generator) -> np.ndarray:
+def escape_crossovers(L: float, p: float, rng: np.random.Generator) -> np.ndarray:
     """Generate crossover positions from the Poisson escape pathway.
 
     N ~ Poisson(p * L) crossovers placed uniformly on [0, L].
@@ -136,11 +121,11 @@ def simulate_meiosis(
 
     parts = []
 
-    xo_int = _interference_crossovers(L, nu, p, rng)
+    xo_int = interference_crossovers(L, nu, p, rng)
     if len(xo_int):
         parts.append(xo_int)
 
-    xo_esc = _poisson_crossovers(L, p, rng)
+    xo_esc = escape_crossovers(L, p, rng)
     if len(xo_esc):
         parts.append(xo_esc)
 
