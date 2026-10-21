@@ -14,7 +14,7 @@ from cointf.naive import (
     loglik_meiosis_naive,
     loglik_naive,
 )
-from cointf.simintf import SimStahl
+from cointf.simintf import simulate_meioses
 
 
 def fstar_value(x, nu):
@@ -87,7 +87,7 @@ def test_matches_brute_force(nu, p):
 def test_count_probabilities_match_simulation(nu, p):
     """P(N=0), P(N=1), P(N=2) from the likelihood vs the simulator."""
     L, n = 1.0, 40000
-    data = SimStahl(L=L, n=n).sim_stahl(p=p, nu=nu, seed=11)
+    data = simulate_meioses(L=L, nu=nu, p=p, n=n, seed=11)
     counts = np.bincount([len(d) for d in data], minlength=3) / n
 
     def dens(*xs):
@@ -113,8 +113,8 @@ def test_finite_near_chromosome_ends():
 
 def test_testbed_matches_simulator(testbed):
     data, prm = testbed
-    sim = SimStahl(L=prm["L"], n=prm["n"]).sim_stahl(
-        p=prm["p"], nu=prm["nu"], seed=prm["seed"]
+    sim = simulate_meioses(
+        L=prm["L"], nu=prm["nu"], p=prm["p"], n=prm["n"], seed=prm["seed"]
     )
     assert len(data) == prm["n"]
     for d, s in zip(data, sim):
@@ -140,3 +140,10 @@ def test_testbed_loglik(testbed):
 def test_invalid_parameters_raise(L, nu, p):
     with pytest.raises(ValueError):
         loglik_meiosis_naive([0.3], L, nu, p)
+
+
+def test_simulate_meioses_rejects_bad_arguments():
+    with pytest.raises(ValueError):
+        simulate_meioses(L=1.0, nu=4.0, p=0.05, n=0, seed=1)
+    with pytest.raises(ValueError):
+        simulate_meioses(L=1.0, nu=4.0, p=0.05, n=5, seed=0)

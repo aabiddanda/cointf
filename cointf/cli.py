@@ -2,7 +2,8 @@
 
 import logging
 
-from cointf import Stahl, SimStahl
+from cointf.stahl import Stahl
+from cointf.simintf import simulate_meioses
 import polars as pl
 import rich_click as click
 
@@ -82,8 +83,7 @@ def simulate(
     out,
 ):
     """CLI for simulating data under the Houseworth-Stahl model."""
-    simulator = SimStahl(L=length, n=n)
-    xs = simulator.sim_stahl(p=p, nu=nu, seed=seed)
+    xs = simulate_meioses(L=length, nu=nu, p=p, n=n, seed=seed)
     if out == "-":
         click.echo("ID\tL\tnu\tp\tX")
         for i, x in enumerate(xs):

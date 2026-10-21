@@ -151,22 +151,45 @@ def simulate_meiosis(
     return np.sort(result)
 
 
-class SimStahl:
-    def __init__(self, L, n=100):
-        """Initialize a crossover simulator across n meioses for chromosome of length L."""
-        assert L > 0
-        assert n > 0
-        self.L = L
-        self.n = n
+def simulate_meioses(L, nu, p, n, seed):
+    """Simulate independent meioses under the Housworth-Stahl model.
 
-    def sim_stahl(self, p=0.05, nu=1.0, seed=42):
-        """Simulate crossovers according to the stahl model."""
-        assert (p >= 0) and (p <= 1.0)
-        assert nu > 0
-        assert seed > 0
-        rng = np.random.default_rng(seed=seed)
-        X = []
-        for i in range(self.n):
-            meiosis_i = simulate_meiosis(L=self.L, p=p, nu=nu, rng=rng)
-            X.append(meiosis_i)
-        return X
+    Parameters
+    ----------
+    L : float
+        Chromosome length in Morgans, ``> 0``.
+    nu : float
+        Interference parameter, ``> 0``.
+    p : float
+        Fraction of crossovers escaping interference, in ``[0, 1]``.
+    n : int
+        Number of meioses, ``> 0``.
+    seed : int
+        Seed for :func:`numpy.random.default_rng`, ``> 0``.
+
+    Returns
+    -------
+    list of numpy.ndarray
+        Sorted crossover positions in Morgans, one array per meiosis.
+
+    Raises
+    ------
+    ValueError
+        If `n` or `seed` is not positive, or a model parameter is out of range.
+
+    See Also
+    --------
+    simulate_meiosis : Simulate a single meiosis.
+
+    Examples
+    --------
+    >>> data = simulate_meioses(L=1.5, nu=4.0, p=0.05, n=3, seed=7)
+    >>> len(data)
+    3
+    """
+    if n <= 0:
+        raise ValueError(f"n must be > 0, got {n!r}")
+    if seed <= 0:
+        raise ValueError(f"seed must be > 0, got {seed!r}")
+    rng = np.random.default_rng(seed=seed)
+    return [simulate_meiosis(L=L, nu=nu, p=p, rng=rng) for _ in range(n)]
