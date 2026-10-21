@@ -41,12 +41,14 @@ Against `xoi::stahlLoglik` (R, v0.76), single-threaded, per (`nu`, `p`) evaluati
 
 | Data | xoi | `loglik_fast` |
 |---|---|---|
-| 2000 meioses, L = 1.5 | 34 ms | 17 ms |
-| 2000 meioses, L = 2.5 | 115 ms | 36 ms |
-| 1000 meioses, L = 3.5 | 203 ms | 30 ms |
-| 2000 meioses, L varies (0.5–3) | 1036 ms | 28 ms |
+| 2000 meioses, L = 1.5 | 34 ms | 7.6 ms |
+| 2000 meioses, L = 2.5 | 115 ms | 24 ms |
+| 1000 meioses, L = 3.5 | 203 ms | 18 ms |
+| 2000 meioses, L varies (0.5–3) | 1036 ms | 18 ms |
 
 The gap widens with crossovers per meiosis, because xoi enumerates all 2ⁿ pathway labelings.
+`loglik_fast` also evaluates only the series terms that matter for each distance (about 10),
+with explicit error bounds, and computes `f*` only at gaps and `S*` only at chromosome ends.
 
 ## Development
 

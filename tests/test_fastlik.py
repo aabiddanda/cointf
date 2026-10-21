@@ -102,11 +102,58 @@ def test_nu1_series_is_exponential():
     np.testing.assert_allclose(log_tail_fast(x, 1.0), -x, atol=1e-12)
 
 
+@pytest.mark.parametrize("nu", [0.2, 1.5, 7.3, 50.0, 150.0])
+def test_series_match_naive_over_wide_range(nu):
+    # Windowed truncation must hold far into both tails of x and nu.
+    x = np.logspace(-7, np.log10(8.0), 400)
+    np.testing.assert_allclose(log_fstar_fast(x, nu), log_fstar(x, nu), atol=1e-11)
+    np.testing.assert_allclose(log_sstar_fast(x, nu), log_sstar(x, nu), atol=1e-13)
+    xt = np.logspace(-6, np.log10(8.0), 40)
+    ref = np.array([log_tail_integral(v, nu) for v in xt])
+    np.testing.assert_allclose(log_tail_fast(xt, nu), ref, atol=1e-13)
+
+
+@settings(max_examples=60, deadline=None)
+@given(
+    x=st.floats(1e-6, 6.0),
+    nu=st.floats(0.2, 120.0),
+)
+def test_property_series_match_naive(x, nu):
+    assert log_fstar_fast(x, nu)[0] == pytest.approx(log_fstar(x, nu)[0], abs=1e-11)
+    assert log_sstar_fast(x, nu)[0] == pytest.approx(log_sstar(x, nu)[0], abs=1e-12)
+    assert log_tail_fast(x, nu)[0] == pytest.approx(log_tail_integral(x, nu), abs=1e-12)
+
+
+def test_series_handle_empty_and_mixed_zero_input():
+    assert log_fstar_fast([], 4.0).shape == (0,)
+    got = log_fstar_fast([0.0, 0.5, 0.0], [4.0, 4.0, 0.5])
+    assert got[0] == -np.inf and got[2] == np.inf
+    assert got[1] == pytest.approx(log_fstar(0.5, 4.0)[0], abs=1e-12)
+    np.testing.assert_array_equal(log_sstar_fast([0.0, 0.0], 4.0), [0.0, 0.0])
+
+
+def test_series_windows_stay_narrow():
+    # Guards the speed-up: few terms per distance at typical distances.
+    args = fastlik.SeriesArguments(np.linspace(0.2, 2.0, 50), 4.0)
+    klo, khi = fastlik.sstar_window(args)
+    assert np.max(khi - klo + 1) <= 16
+    klo, khi = fastlik.tail_window(args)
+    assert np.max(khi - klo + 1) <= 20
+
+
+def test_sstar_beyond_former_series_cap():
+    # Far tail where a 60-term truncation would have biased S*.
+    x = np.array([20.0, 30.0])
+    np.testing.assert_allclose(log_sstar_fast(x, 1.0), -x, atol=1e-12)
+    np.testing.assert_allclose(log_tail_fast(x, 1.0), -x, atol=1e-12)
+
+
 def test_series_kernel_returns_both():
-    u = np.array([0.1, 0.5, 1.0])
-    lf, lS = series_kernel(u, 4.0)
-    np.testing.assert_array_equal(lf, log_fstar_fast(u, 4.0))
-    np.testing.assert_array_equal(lS, log_sstar_fast(u, 4.0))
+    u_gap = np.array([0.1, 0.5, 1.0])
+    u_end = np.array([0.2, 2.0])
+    lf, lS = series_kernel(u_gap, 4.0, u_end, 4.0)
+    np.testing.assert_array_equal(lf, log_fstar_fast(u_gap, 4.0))
+    np.testing.assert_array_equal(lS, log_sstar_fast(u_end, 4.0))
 
 
 # --------------------------------------------------------------------------
@@ -362,12 +409,13 @@ def test_kernel_called_once_with_scalar_nu_when_pooled(testbed):
     data, prm = testbed
     calls = []
 
-    def kernel(u, nu):
-        calls.append((u.shape, np.ndim(nu)))
-        return series_kernel(u, nu)
+    def kernel(u_gap, nu_gap, u_end, nu_end):
+        calls.append((u_gap.size, np.ndim(nu_gap), u_end.size, np.ndim(nu_end)))
+        return series_kernel(u_gap, nu_gap, u_end, nu_end)
 
     got = loglik_fast(data, prm["L"], 4.0, 0.05, kernel=kernel)
-    assert len(calls) == 1 and calls[0][1] == 0
+    n = np.array([len(d) for d in data])
+    assert calls == [(int((n * (n - 1) // 2).sum()), 0, int(2 * n.sum()), 0)]
     assert got == loglik_fast(data, prm["L"], 4.0, 0.05)
 
 
@@ -376,18 +424,19 @@ def test_kernel_gets_per_distance_nu_when_heterogeneous(testbed):
     nu = np.linspace(2.0, 8.0, len(data))
     seen = {}
 
-    def kernel(u, nu_u):
-        seen["shapes"] = (u.shape, np.shape(nu_u))
-        return series_kernel(u, nu_u)
+    def kernel(u_gap, nu_gap, u_end, nu_end):
+        seen["shapes"] = (u_gap.shape, np.shape(nu_gap), u_end.shape, np.shape(nu_end))
+        return series_kernel(u_gap, nu_gap, u_end, nu_end)
 
     got = loglik_fast(data, prm["L"], nu, 0.05, kernel=kernel)
     assert seen["shapes"][0] == seen["shapes"][1]
+    assert seen["shapes"][2] == seen["shapes"][3]
     assert got == loglik_fast(data, prm["L"], nu, 0.05)
 
 
 def test_kernel_with_bad_output_raises():
-    def bad(u, nu):
-        return np.zeros(u.size + 1), np.zeros(u.size)
+    def bad(u_gap, nu_gap, u_end, nu_end):
+        return np.zeros(u_gap.size + 1), np.zeros(u_end.size)
 
     with pytest.raises(ValueError, match="kernel"):
         loglik_fast([[0.3, 0.8]], 1.5, 4.0, 0.1, kernel=bad)
@@ -399,8 +448,8 @@ def test_approximate_kernel_error_propagates_boundedly(testbed):
     data, prm = testbed
     eps = 1e-6
 
-    def perturbed(u, nu):
-        lf, lS = series_kernel(u, nu)
+    def perturbed(u_gap, nu_gap, u_end, nu_end):
+        lf, lS = series_kernel(u_gap, nu_gap, u_end, nu_end)
         return lf + eps, lS - eps
 
     mz = Meioses(data, prm["L"])
