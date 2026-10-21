@@ -1,4 +1,4 @@
-"""Python package to implement fast likelihoods for the Houseworth-Stahl model."""
+"""Fast, exact likelihoods for the Housworth-Stahl model of crossover interference."""
 
 __version__ = "0.0.1b"
 
