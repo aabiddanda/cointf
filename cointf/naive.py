@@ -1,8 +1,7 @@
 r"""Reference (slow) exact likelihood for the Housworth-Stahl model.
 
 A direct, one-meiosis-at-a-time implementation used to validate
-:mod:`cointf.fastlik` and the saddlepoint approximation in
-``stahl_saddlepoint``. It uses the same generative model as
+:mod:`cointf.fastlik`. It uses the same generative model as
 :mod:`cointf.simintf`:
 
 - Interference pathway: a stationary renewal process with gap density

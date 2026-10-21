@@ -102,7 +102,7 @@ def test_count_probabilities_match_simulation(nu, p):
 
 
 def test_finite_near_chromosome_ends():
-    # Crossovers that make the saddlepoint likelihood return -inf.
+    # Crossovers near the ends (an earlier saddlepoint approximation gave -inf here).
     for xs in [[0.0062, 1.0723], [1.2486, 1.4952], [1.4946]]:
         for nu in [4.0, 8.0, 12.0]:
             assert np.isfinite(loglik_meiosis_naive(xs, 1.5, nu, 0.05))
