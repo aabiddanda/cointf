@@ -56,7 +56,7 @@ def series_log_weights(kmax):
 
 
 def log_fstar(x, nu, kmax=default_kmax):
-    r"""Log density of the inter-crossover distance on the chiasma scale.
+    r"""Log density of the unit-rate inter-crossover distance.
 
     Parameters
     ----------

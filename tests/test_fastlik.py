@@ -141,8 +141,8 @@ def test_series_windows_stay_narrow():
     assert np.max(khi - klo + 1) <= 20
 
 
-def test_sstar_beyond_former_series_cap():
-    # Far tail where a 60-term truncation would have biased S*.
+def test_sstar_far_tail():
+    # Far tail, where a short truncated series would bias S*.
     x = np.array([20.0, 30.0])
     np.testing.assert_allclose(log_sstar_fast(x, 1.0), -x, atol=1e-12)
     np.testing.assert_allclose(log_tail_fast(x, 1.0), -x, atol=1e-12)

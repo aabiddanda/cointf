@@ -1,6 +1,6 @@
 # `cointf`
 
-Fast, exact likelihoods for the Housworth–Stahl (gamma-escape) model of crossover interference.
+Fast, exact likelihoods for the Housworth-Stahl model of crossover interference.
 
 Crossovers come from two pathways: an interference pathway, a stationary renewal process with
 gamma-mixture gaps governed by `nu`, and an escape pathway, a Poisson process carrying a fraction
@@ -58,7 +58,7 @@ pytest
 ```
 
 Several of the coding conventions were contributed by Claude and Claude Code. As such, code and
-specific approximations should be reviewed as necessary.
+series truncations should be reviewed as necessary.
 
 ## Contact
 

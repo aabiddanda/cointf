@@ -1,4 +1,4 @@
-r"""Fast exact likelihood for the Housworth-Stahl gamma-escape model.
+r"""Fast exact likelihood for the Housworth-Stahl model.
 
 Same model and recursion as :mod:`cointf.naive`, organised for speed:
 
@@ -10,14 +10,12 @@ Same model and recursion as :mod:`cointf.naive`, organised for speed:
 - The recursion needs :math:`\log f^*` only at gaps between crossovers and
   :math:`\log S^*` only at the distances to the chromosome ends, so each is
   evaluated only where it is used.
-- Meioses are grouped by their number of crossovers, and the forward
-  recursion over pathway labels runs once per group on a dense array. The
-  cost of one evaluation is a few numpy calls per crossover index rather
-  than a Python loop over meioses, and memory scales with the meioses
-  actually present rather than with the largest one.
+- Meioses are grouped by crossover count and the forward recursion runs
+  once per group on a dense array, so cost is a few numpy calls per
+  crossover index and memory scales with the meioses present.
 - All kernel evaluations needed for one likelihood call are made in a
-  single vectorised call, so the kernel can be swapped (e.g. for a
-  tabulated approximation) without touching the recursion.
+  single vectorised call, so the kernel can be swapped without touching
+  the recursion.
 
 The interference parameter :math:`\nu` and escape fraction :math:`p` may
 be scalars (a pooled fit) or arrays with one value per meiosis (e.g. when
@@ -499,7 +497,7 @@ def log_fstar_zero(nu):
 
 
 def log_fstar_fast(x, nu):
-    r"""Log density of the inter-crossover distance on the chiasma scale.
+    r"""Log density of the unit-rate inter-crossover distance.
 
     Parameters
     ----------
@@ -642,10 +640,9 @@ class Meioses:
     counts : numpy.ndarray
         Number of crossovers per meiosis, shape ``(M,)``.
     groups : list of tuple
-        One ``(n, idx, iu, ju, end_bounds, gap_bounds)`` entry per distinct
-        crossover count ``n >= 1``: the meiosis indices, the upper-triangle
-        pair indices, the slice bounds of its first and last distances in
-        `x_end`, and of its gaps in `x_gap`.
+        One ``(n, idx, iu, ju, end_bounds, gap_bounds)`` per crossover count
+        ``n >= 1``: meiosis indices, upper-triangle pair indices, and slice
+        bounds into `x_end` and `x_gap`.
     x_end : numpy.ndarray
         Distances from each crossover to the chromosome start and end, where
         :math:`S^*` is needed, before scaling by :math:`q`.
@@ -773,7 +770,7 @@ def as_per_meiosis(value, name, M):
 
 
 def loglik_fast(data, L, nu, p, *, kernel=None, per_meiosis=False):
-    r"""Exact log-likelihood of crossover positions under the gamma-escape model.
+    r"""Exact log-likelihood of crossover positions under the Housworth-Stahl model.
 
     Parameters
     ----------
@@ -795,8 +792,7 @@ def loglik_fast(data, L, nu, p, *, kernel=None, per_meiosis=False):
         returning :math:`\log f^*` at the gaps `u_gap` and :math:`\log S^*`
         at the end distances `u_end` (see :func:`series_kernel`, the
         default). The `nu` arguments are scalars when `nu` is shared by all
-        meioses, otherwise arrays matching their distances. Use this to
-        plug in a tabulated approximation.
+        meioses, otherwise arrays matching their distances.
     per_meiosis : bool, default False
         If True, return one log-likelihood per meiosis instead of the sum.
 
