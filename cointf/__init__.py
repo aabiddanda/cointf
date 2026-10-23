@@ -1,6 +1,7 @@
-"""Python package to implement fast likelihoods for the Houseworth-Stahl model."""
+"""Fast, exact likelihoods for the Housworth-Stahl model of crossover interference."""
 
-__version__ = "0.0.1b"
+__version__ = "0.1.0a"
 
-from .stahl import Stahl  # noqa
-from .simintf import SimStahl  # noqa
+from .simintf import simulate_meiosis, simulate_meioses  # noqa
+from .naive import loglik_meiosis_naive, loglik_naive  # noqa
+from .fastlik import Meioses, loglik_fast  # noqa
