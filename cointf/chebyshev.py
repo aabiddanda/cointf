@@ -18,7 +18,9 @@ Notes
   :math:`\nu`. Pieces are halved until the trailing Chebyshev coefficients
   fall below the tolerance.
 - Distances outside ``[u_min, u_max]`` fall back to the exact series, so the
-  kernel is exact there and approximate (to about ``tol``) inside.
+  kernel is exact there and approximate inside. ``tol`` is an acceptance
+  threshold on trailing coefficients, not a guaranteed error bound; see
+  :class:`ChebyshevKernel`.
 - One fit is built per distinct :math:`\nu` and cached. When :math:`\nu`
   differs between meioses and there are more than ``max_distinct`` distinct
   values in one call, the kernel falls back to the exact series.
@@ -92,9 +94,9 @@ class PiecewiseChebyshev:
     n_nodes : int
         Nodes per piece (degree plus one).
     tol : float
-        Target absolute error. A piece is accepted when its last three
-        coefficients are below ``tol / 4`` times ``max(1, max |fn|)`` on the
-        piece.
+        Acceptance threshold, not an error bound: a piece is accepted when
+        its last three coefficients are below ``tol / 4`` times
+        ``max(1, max |fn|)`` on the piece.
     max_pieces : int
         Upper bound on the number of pieces.
 
@@ -189,7 +191,13 @@ class ChebyshevKernel:
     Parameters
     ----------
     tol : float, default 1e-12
-        Target absolute error in :math:`\log f^*` and :math:`\log S^*`.
+        Acceptance threshold for each piece: its last three Chebyshev
+        coefficients must be below ``tol / 4`` times the largest absolute
+        value being fitted on the piece (at least 1). This is a heuristic,
+        not a bound. With the default, measured errors in :math:`\log f^*`
+        and :math:`\log S^*` are about 1e-14 for :math:`\nu \le 4` and grow
+        to about 3e-12 at :math:`\nu = 100`, where the fitted values are
+        largest.
     u_min, u_max : float, default 1e-6 and 5.0
         Distances (on the interference scale) inside this range use the fit;
         the rest use the exact series.
