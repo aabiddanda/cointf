@@ -588,7 +588,10 @@ def series_kernel(u_gap, nu_gap, u_end, nu_end):
     The recursion needs :math:`f^*` only at gaps between interference
     crossovers and :math:`S^*` only at distances to the chromosome ends, so
     a kernel receives the two sets separately. Any callable with this
-    signature can be passed as ``kernel`` to :func:`loglik_fast`.
+    signature can be passed as ``kernel`` to :func:`loglik_fast` or
+    :func:`cointf.quartet.loglik_quartet`.
+    :class:`cointf.chebyshev.ChebyshevKernel` is a faster, approximate
+    alternative.
 
     Parameters
     ----------
@@ -626,7 +629,10 @@ class Meioses:
         Crossover positions in Morgans, one 1-D sequence per meiosis (a
         meiosis here is one chromosome in one gamete). Positions must be
         finite, lie in ``[0, L]`` and be distinct within a meiosis; order
-        does not matter.
+        does not matter. For :func:`cointf.quartet.loglik_quartet` each
+        entry is instead one quartet, the pooled crossovers of two meioses
+        of the same chromosome, and "meiosis" in the attributes below means
+        one such entry.
     L : float or array_like
         Chromosome length in Morgans, ``> 0``: a scalar shared by all meioses
         or one value per meiosis.
@@ -791,8 +797,9 @@ def loglik_fast(data, L, nu, p, *, kernel=None, per_meiosis=False):
         Function ``kernel(u_gap, nu_gap, u_end, nu_end) -> (log_f, log_S)``
         returning :math:`\log f^*` at the gaps `u_gap` and :math:`\log S^*`
         at the end distances `u_end` (see :func:`series_kernel`, the
-        default). The `nu` arguments are scalars when `nu` is shared by all
-        meioses, otherwise arrays matching their distances.
+        default, and :class:`cointf.chebyshev.ChebyshevKernel`, a faster
+        approximation). The `nu` arguments are scalars when `nu` is shared
+        by all meioses, otherwise arrays matching their distances.
     per_meiosis : bool, default False
         If True, return one log-likelihood per meiosis instead of the sum.
 

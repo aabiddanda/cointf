@@ -19,6 +19,11 @@ unobserved. The likelihood sums over all labelings with a forward recursion
 on the position of the most recent interference crossover
 (:math:`O(n^2)` per meiosis). :math:`f^*`, its survival function and its
 integrated tail are evaluated in log space from a 200-term gamma series.
+
+:func:`loglik_quartet_naive` is the matching reference for phase-unknown
+(quartet) data, the pooled crossovers of two meioses. It sums directly over
+all :math:`3^n` labelings (interference in meiosis A, interference in
+meiosis B, or escape) and is used to validate :mod:`cointf.quartet`.
 """
 
 import itertools

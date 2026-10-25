@@ -50,13 +50,17 @@ def loglik_quartet(data, L, nu, p, *, kernel=None, per_meiosis=False):
         see :func:`cointf.fastlik.series_kernel` (the default) and
         :class:`cointf.chebyshev.ChebyshevKernel`.
     per_meiosis : bool, default False
-        If True, return one log-likelihood per quartet instead of the sum.
+        If True, return one log-likelihood per entry of `data`, i.e. per
+        quartet (one pair of pooled meioses), instead of the sum. Named as in
+        :func:`cointf.fastlik.loglik_fast` to keep the two interfaces the
+        same; it never splits a quartet into its two meioses.
 
     Returns
     -------
     float or numpy.ndarray
-        The total log-likelihood, or an array of shape ``(M,)`` if
-        `per_meiosis` is True.
+        The total log-likelihood, or an array of shape ``(M,)`` with one
+        value per quartet if `per_meiosis` is True, where ``M`` is the
+        number of quartets.
 
     Raises
     ------
