@@ -65,7 +65,8 @@ for Python, or `remotes::install_github("aabiddanda/cointf", subdir = "r", ref =
 - API reference: [Python](docs/api/python.md) (every public class and function, from the
   docstrings) and [R](docs/api/r.md) (from the R help pages)
 
-The pages read on GitHub as they are. To build them as an HTML site (Sphinx, Furo theme), see
+The pages read on GitHub as they are. They are also published as an HTML site at
+<https://aabiddanda.github.io/cointf/>, rebuilt from `main`. To build the site locally, see
 [Building the documentation](#building-the-documentation).
 
 ## Usage
@@ -218,6 +219,11 @@ The Python API pages are generated from the docstrings at build time. The R API 
 Rscript -e 'roxygen2::roxygenise("r")'
 Rscript docs/api/make_r_reference.R
 ```
+
+The site is published to GitHub Pages by `.github/workflows/docs.yml`. It rebuilds on every push to
+`main`, using the same strict build as above (any warning fails it), and can also be run by hand
+with `gh workflow run docs.yml --ref main`. It does not run R, so commit the regenerated
+`docs/api/r.md` along with any roxygen changes.
 
 Several of the coding conventions were contributed by Claude and Claude Code. As such, code and
 series truncations should be reviewed as necessary.
