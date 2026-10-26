@@ -8,7 +8,7 @@ Description: R interface to the 'cointf' Python package, which computes exact
     (gamma interference plus Poisson escape) Housworth-Stahl model, for single
     meioses and for phase-unknown (quartet) data, and simulates from the model.
     The Python package is installed automatically through 'reticulate'.
-License: Not yet specified
+License: MIT + file LICENSE
 URL: https://github.com/aabiddanda/cointf
 BugReports: https://github.com/aabiddanda/cointf/issues
 Encoding: UTF-8
