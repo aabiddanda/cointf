@@ -435,7 +435,7 @@ identical to the Python package.
 <code>reticulate::py_require()</code>, and reticulate installs it into a managed
 environment the first time Python is used. The requirement defaults to the
 GitHub repository and can be changed with the option <code>cointf.python</code>, set
-before loading the package:
+before loading the package, e.g. to install from the <code>dev</code> branch:
 </p>
 <div class="sourceCode r"><pre>options(cointf.python = "cointf @ git+https://github.com/aabiddanda/cointf@dev")
 </pre></div>

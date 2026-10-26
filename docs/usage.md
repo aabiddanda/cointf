@@ -5,7 +5,7 @@ This guide uses Python. The R interface has the same functions and arguments; se
 
 ## Installation
 
-From a clone of the repository, on the `dev` branch:
+From a clone of the repository:
 
 ```bash
 pip install .               # numpy and scipy are installed as dependencies

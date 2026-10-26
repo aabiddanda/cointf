@@ -9,7 +9,7 @@
 #' [reticulate::py_require()], and reticulate installs it into a managed
 #' environment the first time Python is used. The requirement defaults to the
 #' GitHub repository and can be changed with the option `cointf.python`, set
-#' before loading the package:
+#' before loading the package, e.g. to install from the `dev` branch:
 #'
 #' ```r
 #' options(cointf.python = "cointf @ git+https://github.com/aabiddanda/cointf@dev")
@@ -30,7 +30,7 @@
 # start Python.
 cointf_py <- NULL
 
-default_requirement <- "cointf @ git+https://github.com/aabiddanda/cointf@dev"
+default_requirement <- "cointf @ git+https://github.com/aabiddanda/cointf"
 
 # Required name: R calls .onLoad when the namespace is loaded.
 .onLoad <- function(libname, pkgname) {

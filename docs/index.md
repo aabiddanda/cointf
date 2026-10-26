@@ -22,11 +22,10 @@ repeated evaluation inside optimisers and samplers, and for parameters that vary
 
 ## Installation
 
-`cointf` is installed from a clone of the GitHub repository, not from PyPI or CRAN. The current
-code is on the `dev` branch.
+`cointf` is installed from a clone of the GitHub repository, not from PyPI or CRAN.
 
 ```bash
-git clone https://github.com/aabiddanda/cointf.git && cd cointf && git checkout dev
+git clone https://github.com/aabiddanda/cointf.git && cd cointf
 pip install .        # Python
 R CMD INSTALL r      # R (needs the reticulate package); see "Using cointf from R"
 ```

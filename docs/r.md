@@ -6,7 +6,7 @@ the same name, so results are identical to Python, down to the simulated data fo
 
 ## Installation
 
-From the root of a clone of the repository (on the `dev` branch until it is merged into `main`):
+From the root of a clone of the repository:
 
 ```bash
 Rscript -e 'install.packages("reticulate")'   # version 1.41 or later
@@ -20,7 +20,7 @@ one.
 
 - **Automatic (default).**
   - When the package is loaded, it declares the requirement
-    `cointf @ git+https://github.com/aabiddanda/cointf@dev` with `reticulate::py_require()`.
+    `cointf @ git+https://github.com/aabiddanda/cointf` with `reticulate::py_require()`.
   - The first time Python is needed, reticulate builds a private environment and installs `cointf`
     and its dependencies into it. This needs internet access once and takes about 20 seconds.
     Later sessions reuse the cached environment.
@@ -38,7 +38,8 @@ library(cointf)
 Two options adjust this:
 
 - `options(cointf.python = "<requirement>")`, set before `library(cointf)`, changes the declared
-  requirement, e.g. to another branch or a local path.
+  requirement, e.g. to another branch (`cointf @ git+https://github.com/aabiddanda/cointf@dev`)
+  or a local path.
 - `options(cointf.python = NULL)` declares nothing. Use it when you select the environment another
   way, such as `reticulate::use_virtualenv()`.
 

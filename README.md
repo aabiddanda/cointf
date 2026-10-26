@@ -10,14 +10,11 @@ pooled, an O(n³) recursion sums over the assignment of each crossover to either
 
 ## Installation
 
-`cointf` is not on PyPI or CRAN. Install it from a clone of this repository. The current code is
-on the `dev` branch, while `main` still holds an older version, so check out `dev` until it is
-merged into `main`.
+`cointf` is not on PyPI or CRAN. Install it from a clone of this repository.
 
 ```bash
 git clone https://github.com/aabiddanda/cointf.git
 cd cointf
-git checkout dev
 ```
 
 ### Python
@@ -39,7 +36,7 @@ R CMD INSTALL r
 R needs the `reticulate` package (version 1.41 or later). Python then comes in one of two ways:
 
 - **Automatic (default).** On first use, reticulate builds a private Python environment and
-  installs `cointf` from the GitHub repository (`dev` branch) into it. This needs internet access
+  installs `cointf` from the GitHub repository into it. This needs internet access
   once, and takes about 20 seconds.
 - **Your own environment.** If you already ran `pip install .` in a Python environment, point
   reticulate at it before loading the package:
@@ -49,8 +46,8 @@ R needs the `reticulate` package (version 1.41 or later). Python then comes in o
   library(cointf)
   ```
 
-To install from GitHub without a clone, use `pip install "git+https://github.com/aabiddanda/cointf@dev"`
-for Python, or `remotes::install_github("aabiddanda/cointf", subdir = "r", ref = "dev")` for R.
+To install from GitHub without a clone, use `pip install "git+https://github.com/aabiddanda/cointf"`
+for Python, or `remotes::install_github("aabiddanda/cointf", subdir = "r")` for R.
 
 ## Documentation
 
@@ -191,7 +188,7 @@ Rscript -e 'testthat::test_local("r")'                        # full R suite
 Rscript -e 'testthat::test_local("r", filter = "reticulate")' # one file (test-reticulate.R)
 ```
 
-Without `RETICULATE_PYTHON`, the R package installs `cointf` from the GitHub `dev` branch, so the
+Without `RETICULATE_PYTHON`, the R package installs `cointf` from GitHub (`main`), so the
 tests would run against that version rather than your local code.
 
 Two optional checks:
