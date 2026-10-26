@@ -13,9 +13,19 @@ as_py_data <- function(data) {
       call. = FALSE
     )
   }
-  reticulate::r_to_py(lapply(data, function(x) {
-    reticulate::np_array(as.numeric(x), dtype = "float64")
-  }))
+  if (length(data) == 0L) {
+    return(reticulate::r_to_py(list()))
+  }
+  # One flat array split in Python: converting each meiosis separately costs
+  # a Python call per meiosis (about 1.4 s for 20,000 meioses).
+  counts <- lengths(data)
+  flat <- as.numeric(unlist(data, use.names = FALSE))
+  cuts <- cumsum(counts)[-length(counts)]
+  np <- reticulate::import("numpy", convert = FALSE)
+  np$split(
+    reticulate::np_array(flat, dtype = "float64"),
+    reticulate::np_array(as.integer(cuts), dtype = "int64")
+  )
 }
 
 # A scalar stays a scalar; a longer vector becomes a float64 array.

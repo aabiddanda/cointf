@@ -153,7 +153,8 @@ RETICULATE_PYTHON=$(which python) Rscript -e 'testthat::test_local("r")'   # R t
 ```
 
 The R documentation in `r/man` is generated from the roxygen comments in `r/R` with
-`Rscript -e 'roxygen2::roxygenise("r")'`.
+`Rscript -e 'roxygen2::roxygenise("r")'`. Set `COINTF_TEST_INSTALL=true` to also run the R test
+that installs the Python package from GitHub into a fresh environment (needs network access).
 
 Several of the coding conventions were contributed by Claude and Claude Code. As such, code and
 series truncations should be reviewed as necessary.

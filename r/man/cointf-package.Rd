@@ -24,7 +24,10 @@ before loading the package:
 To use an existing Python environment instead (for example one where
 'cointf' was installed with \verb{pip install .} from a clone), point
 reticulate at it before loading the package, e.g.
-\code{Sys.setenv(RETICULATE_PYTHON = "/path/to/venv/bin/python")}.
+\code{Sys.setenv(RETICULATE_PYTHON = "/path/to/venv/bin/python")}. The GitHub
+requirement is then not declared. Setting \code{options(cointf.python = NULL)}
+also skips it, for environments selected another way (e.g.
+\code{\link[reticulate:use_virtualenv]{reticulate::use_virtualenv()}}).
 }
 
 \seealso{

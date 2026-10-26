@@ -18,7 +18,10 @@
 #' To use an existing Python environment instead (for example one where
 #' 'cointf' was installed with `pip install .` from a clone), point
 #' reticulate at it before loading the package, e.g.
-#' `Sys.setenv(RETICULATE_PYTHON = "/path/to/venv/bin/python")`.
+#' `Sys.setenv(RETICULATE_PYTHON = "/path/to/venv/bin/python")`. The GitHub
+#' requirement is then not declared. Setting `options(cointf.python = NULL)`
+#' also skips it, for environments selected another way (e.g.
+#' [reticulate::use_virtualenv()]).
 #'
 #' @keywords internal
 "_PACKAGE"
@@ -31,7 +34,13 @@ default_requirement <- "cointf @ git+https://github.com/aabiddanda/cointf@dev"
 
 # Required name: R calls .onLoad when the namespace is loaded.
 .onLoad <- function(libname, pkgname) {
-  reticulate::py_require(getOption("cointf.python", default_requirement))
+  # With RETICULATE_PYTHON set, the user has chosen an environment (e.g. a
+  # local pip install); declaring the GitHub requirement would only make
+  # reticulate warn that it is not installed there.
+  requirement <- getOption("cointf.python", default_requirement)
+  if (!nzchar(Sys.getenv("RETICULATE_PYTHON")) && !is.null(requirement)) {
+    reticulate::py_require(requirement)
+  }
   cointf_py <<- reticulate::import("cointf", delay_load = TRUE)
 }
 
