@@ -27,3 +27,9 @@ docs/_build/
 *.dvi
 *.xdv
 *.csv
+
+# R
+*.Rcheck/
+r/*.tar.gz
+.Rhistory
+.Rproj.user/
