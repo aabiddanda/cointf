@@ -1,72 +1,85 @@
+"""Simulation of crossover positions under the Housworth-Stahl model.
+
+The interference pathway is a stationary renewal process with gap density
+``f*`` rescaled to rate ``1 - p``; the escape pathway is a homogeneous
+Poisson process with rate ``p``. Observed crossovers are their superposition.
+"""
+
 import numpy as np
 
-
-_KMAX = 200
-_ks = np.arange(1, _KMAX + 1, dtype=np.float64)
-_CMF = np.cumsum(_ks * 0.5 ** (_ks + 1))  # cumulative mass function, sum -> 1
+__all__ = ["simulate_meioses", "simulate_meiosis", "simulate_quartets"]
 
 
-def _sample_K_batch(rng: np.random.Generator, size: int) -> np.ndarray:
-    """Batch sample of K ~ P(K=k) = k*(1/2)^{k+1} by precomputed inverse CDF."""
-    return np.searchsorted(_CMF, rng.random(size)) + 1  # k in {1, 2, ...}
+size_biased_kmax = 200
+size_biased_k = np.arange(1, size_biased_kmax + 1, dtype=np.float64)
+# Cumulative distribution of the size-biased geometric P(K = k) = k 2^-(k+1).
+size_biased_cmf = np.cumsum(size_biased_k * 0.5 ** (size_biased_k + 1))
 
 
-def _sample_excess_life(nu: float, rng: np.random.Generator) -> float:
-    """Sample the first crossover position from the stationary f*(x;nu) renewal.
+def sample_size_biased_k(rng: np.random.Generator, size: int) -> np.ndarray:
+    r"""Sample the size-biased geometric distribution by inverse CDF.
 
-    The excess-life density is h(x; nu) = 1 - F*(x; nu).
+    Parameters
+    ----------
+    rng : numpy.random.Generator
+        Random number generator.
+    size : int
+        Number of draws.
 
-    Uses the inspection-paradox decomposition:
-        K  ~ P(K=k) = k*(1/2)^{k+1}   (size-biased geometric)
-        W  ~ Gamma(K*nu+1, rate=2*nu)  (size-biased f* component)
-        X0 = W * U,  U ~ Uniform[0,1]
+    Returns
+    -------
+    numpy.ndarray
+        Integer draws :math:`K \ge 1` with :math:`P(K = k) = k\, 2^{-(k+1)}`,
+        shape ``(size,)``.
     """
-    K = int(_sample_K_batch(rng, 1)[0])
-    W = rng.gamma(shape=K * nu + 1.0, scale=0.5 / nu)
-    return W * rng.random()
+    return np.searchsorted(size_biased_cmf, rng.random(size)) + 1
 
 
-def _sample_fstar(nu: float, rng: np.random.Generator) -> float:
-    """Sample one inter-crossover gap from f*(x; nu).
-
-    f*(x; nu) = sum_{k>=1} (1/2)^k * Gamma(k*nu, rate=2*nu) density.
-    Method: K ~ Geometric(1/2) on {1,2,...}, then X ~ Gamma(K*nu, rate=2*nu).
-    Mean = E[K] * (1/2) = 2 * (1/2) = 1 Morgan.
-    """
-    k = rng.geometric(p=0.5)  # k in {1, 2, ...}
-    return rng.gamma(shape=k * nu, scale=0.5 / nu)
-
-
-def _interference_crossovers(
+def interference_crossovers(
     L: float,
     nu: float,
     p: float,
     rng: np.random.Generator,
 ) -> np.ndarray:
-    """Generate crossover positions from the gamma-interference pathway.
+    r"""Simulate crossovers from the interference pathway.
 
-    Crossovers are placed directly from a stationary f*(x; nu) renewal
-    process (no explicit Bernoulli thinning step -- the thinning is already
-    encoded in f*). To achieve a crossover RATE of (1-p) per Morgan
-    (so that the two pathways together give rate 1), we scale the chromosome:
-    effectively sample a renewal on [0, L*(1-p)] then rescale back.
+    A stationary renewal process with gap density :math:`q f^*(qx; \nu)`,
+    :math:`q = 1 - p`, so that the pathway has rate :math:`q` per Morgan.
+    Each gap is drawn as :math:`\mathrm{Gamma}(K\nu,\ \mathrm{rate}=2\nu q)`
+    with :math:`K` geometric on ``{1, 2, ...}`` with success probability 1/2.
 
-    In practice: place crossovers with f* inter-gaps on [0, L] but with
-    f* scaled to have mean 1/(1-p) -- i.e. scale all gaps by 1/(1-p).
-    Equivalently, place crossovers with Gamma(k*nu, rate=2*nu*(1-p)) gaps.
+    Parameters
+    ----------
+    L : float
+        Chromosome length in Morgans, ``> 0``.
+    nu : float
+        Interference parameter, ``> 0``.
+    p : float
+        Escape fraction, in ``[0, 1]``.
+    rng : numpy.random.Generator
+        Random number generator.
+
+    Returns
+    -------
+    numpy.ndarray
+        Sorted crossover positions in ``[0, L]``; empty if ``p = 1``.
+
+    Notes
+    -----
+    Stationarity requires the first position to follow the excess-life
+    density :math:`q S^*(qx; \nu)`. It is drawn as :math:`WU` with
+    :math:`W \sim \mathrm{Gamma}(K\nu + 1,\ \mathrm{rate}=2\nu q)`,
+    :math:`K` size-biased geometric (see :func:`sample_size_biased_k`) and
+    :math:`U` uniform on ``[0, 1]``.
     """
     if p >= 1.0:
         return np.empty(0, dtype=np.float64)
 
-    q = 1.0 - p  # interference-pathway crossover rate per Morgan
-    scale = 0.5 / (
-        nu * q
-    )  # = 1 / (2*nu*q); gap mean = nu * scale = 1/(2q) chiasma mean
-    # After geometric thinning: crossover mean = 1/q
+    q = 1.0 - p
+    scale = 0.5 / (nu * q)  # gamma scale 1 / (2 nu q)
 
-    # First crossover: excess-life of the scaled renewal
-    # Excess-life sampler: W ~ Gamma(K*nu+1, rate=2*nu*q), X0 = W*U
-    K = int(_sample_K_batch(rng, 1)[0])
+    # First crossover from the excess-life distribution.
+    K = int(sample_size_biased_k(rng, 1)[0])
     W = rng.gamma(shape=K * nu + 1.0, scale=scale)
     x = W * rng.random()
 
@@ -79,13 +92,25 @@ def _interference_crossovers(
     return np.array(positions, dtype=np.float64) if positions else np.empty(0)
 
 
-# ── Poisson-pathway crossovers on [0, L] ──────────────────────────────────────
+def escape_crossovers(L: float, p: float, rng: np.random.Generator) -> np.ndarray:
+    """Simulate crossovers from the escape pathway.
 
+    A homogeneous Poisson process of rate `p` per Morgan: ``Poisson(p L)``
+    crossovers placed uniformly on ``[0, L]``.
 
-def _poisson_crossovers(L: float, p: float, rng: np.random.Generator) -> np.ndarray:
-    """Generate crossover positions from the Poisson escape pathway.
+    Parameters
+    ----------
+    L : float
+        Chromosome length in Morgans, ``> 0``.
+    p : float
+        Escape fraction, in ``[0, 1]``.
+    rng : numpy.random.Generator
+        Random number generator.
 
-    N ~ Poisson(p * L) crossovers placed uniformly on [0, L].
+    Returns
+    -------
+    numpy.ndarray
+        Sorted crossover positions in ``[0, L]``; empty if ``p = 0``.
     """
     if p <= 0.0:
         return np.empty(0, dtype=np.float64)
@@ -99,30 +124,51 @@ def simulate_meiosis(
     p: float,
     rng: np.random.Generator | None = None,
 ) -> np.ndarray:
-    """Simulate crossover positions under the Housworth-Stahl model.
+    """Simulate one meiosis under the Housworth-Stahl model.
+
+    Crossovers are the superposition of the interference pathway
+    (rate ``1 - p``) and the escape pathway (rate ``p``).
 
     Parameters
     ----------
-    L   : Chromosome length in Morgans  (> 0).
-    nu  : Interference shape parameter  (> 0).
-          nu = 1  ->  no interference.
-          nu > 1  ->  positive interference.
-    p   : Escape fraction in [0, 1].
-          p = 0  ->  pure interference model.
-          p = 1  ->  pure Poisson model.
-    rng : numpy.random.Generator (optional). Created with default_rng() if None.
+    L : float
+        Chromosome length in Morgans, ``> 0``.
+    nu : float
+        Interference parameter, ``> 0``. ``nu = 1`` is no interference and
+        ``nu > 1`` positive interference.
+    p : float
+        Fraction of crossovers escaping interference, in ``[0, 1]``.
+        ``p = 0`` is the pure interference model and ``p = 1`` a Poisson
+        process.
+    rng : numpy.random.Generator, optional
+        Random number generator; a fresh :func:`numpy.random.default_rng`
+        if None.
 
     Returns
     -------
-    np.ndarray, shape (n,)
-        Sorted crossover positions in Morgan units, all in (0, L).
-        May be empty (zero crossovers).
+    numpy.ndarray
+        Sorted crossover positions in Morgans, in ``[0, L]``; may be empty.
+
+    Raises
+    ------
+    ValueError
+        If `L`, `nu` or `p` is out of range.
+
+    See Also
+    --------
+    simulate_meioses : Simulate many meioses from one seed.
 
     Notes
     -----
-    Expected number of crossovers = L regardless of (nu, p).
-    The interference pathway gives sub-Poisson (Fano < 1) crossover counts
-    for nu > 1; the Poisson pathway gives Fano = 1 for its own counts.
+    The expected number of crossovers is `L` for every ``(nu, p)``. For
+    ``nu > 1`` the interference pathway has sub-Poisson counts.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> xs = simulate_meiosis(1.5, nu=4.0, p=0.05, rng=np.random.default_rng(1))
+    >>> bool(np.all((xs >= 0) & (xs <= 1.5)))
+    True
     """
     if L <= 0:
         raise ValueError(f"L must be > 0, got {L!r}")
@@ -136,11 +182,11 @@ def simulate_meiosis(
 
     parts = []
 
-    xo_int = _interference_crossovers(L, nu, p, rng)
+    xo_int = interference_crossovers(L, nu, p, rng)
     if len(xo_int):
         parts.append(xo_int)
 
-    xo_esc = _poisson_crossovers(L, p, rng)
+    xo_esc = escape_crossovers(L, p, rng)
     if len(xo_esc):
         parts.append(xo_esc)
 
@@ -151,22 +197,100 @@ def simulate_meiosis(
     return np.sort(result)
 
 
-class SimStahl:
-    def __init__(self, L, n=100):
-        """Initialize a crossover simulator across n meioses for chromosome of length L."""
-        assert L > 0
-        assert n > 0
-        self.L = L
-        self.n = n
+def simulate_meioses(L, nu, p, n, seed):
+    """Simulate independent meioses under the Housworth-Stahl model.
 
-    def sim_stahl(self, p=0.05, nu=1.0, seed=42):
-        """Simulate crossovers according to the stahl model."""
-        assert (p >= 0) and (p <= 1.0)
-        assert nu > 0
-        assert seed > 0
-        rng = np.random.default_rng(seed=seed)
-        X = []
-        for i in range(self.n):
-            meiosis_i = simulate_meiosis(L=self.L, p=p, nu=nu, rng=rng)
-            X.append(meiosis_i)
-        return X
+    Parameters
+    ----------
+    L : float
+        Chromosome length in Morgans, ``> 0``.
+    nu : float
+        Interference parameter, ``> 0``.
+    p : float
+        Fraction of crossovers escaping interference, in ``[0, 1]``.
+    n : int
+        Number of meioses, ``> 0``.
+    seed : int
+        Seed for :func:`numpy.random.default_rng`, ``> 0``.
+
+    Returns
+    -------
+    list of numpy.ndarray
+        Sorted crossover positions in Morgans, one array per meiosis.
+
+    Raises
+    ------
+    ValueError
+        If `n` or `seed` is not positive, or a model parameter is out of range.
+
+    See Also
+    --------
+    simulate_meiosis : Simulate a single meiosis.
+
+    Examples
+    --------
+    >>> data = simulate_meioses(L=1.5, nu=4.0, p=0.05, n=3, seed=7)
+    >>> len(data)
+    3
+    """
+    if n <= 0:
+        raise ValueError(f"n must be > 0, got {n!r}")
+    if seed <= 0:
+        raise ValueError(f"seed must be > 0, got {seed!r}")
+    rng = np.random.default_rng(seed=seed)
+    return [simulate_meiosis(L=L, nu=nu, p=p, rng=rng) for _ in range(n)]
+
+
+def simulate_quartets(L, nu, p, n, seed):
+    """Simulate phase-unknown (quartet) crossover data.
+
+    Each dataset pools the crossovers of two independent meioses with the
+    same parameters, as observed for one parent in a family with two
+    offspring when it is unknown which offspring inherited each crossover.
+
+    Parameters
+    ----------
+    L : float
+        Chromosome length in Morgans, ``> 0``.
+    nu : float
+        Interference parameter, ``> 0``.
+    p : float
+        Fraction of crossovers escaping interference, in ``[0, 1]``.
+    n : int
+        Number of quartets, ``> 0``.
+    seed : int
+        Seed for :func:`numpy.random.default_rng`, ``> 0``.
+
+    Returns
+    -------
+    list of numpy.ndarray
+        Sorted pooled crossover positions in Morgans, one array per quartet.
+
+    Raises
+    ------
+    ValueError
+        If `n` or `seed` is not positive, or a model parameter is out of range.
+
+    See Also
+    --------
+    cointf.quartet.loglik_quartet : Likelihood of quartet data.
+
+    Examples
+    --------
+    >>> data = simulate_quartets(L=1.5, nu=4.0, p=0.05, n=3, seed=7)
+    >>> len(data)
+    3
+    """
+    if n <= 0:
+        raise ValueError(f"n must be > 0, got {n!r}")
+    if seed <= 0:
+        raise ValueError(f"seed must be > 0, got {seed!r}")
+    rng = np.random.default_rng(seed=seed)
+    return [
+        np.sort(
+            np.concatenate(
+                [simulate_meiosis(L=L, nu=nu, p=p, rng=rng) for _ in range(2)]
+            )
+        )
+        for _ in range(n)
+    ]
