@@ -19,6 +19,7 @@ Homepage = "https://github.com/aabiddanda/cointf"
 
 [project.optional-dependencies]
 tests = [ "pytest", "pytest-cov", "hypothesis", "pytest-xdist"]
+docs = ["sphinx", "myst-nb", "numpydoc", "furo"]
 
 [tool.setuptools]
 zip-safe = false

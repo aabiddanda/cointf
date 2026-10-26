@@ -338,11 +338,45 @@ class ChebyshevKernel:
         return out
 
     def log_fstar(self, u, nu):
-        r"""Approximate :math:`\log f^*(u; \nu)`; see :func:`cointf.fastlik.log_fstar_fast`."""
+        r"""Approximate log density of the unit-rate inter-crossover distance.
+
+        Parameters
+        ----------
+        u : array_like
+            Distances, ``>= 0``. Flattened to 1-D.
+        nu : float or array_like
+            Interference parameter: a scalar, or one value per element of `u`.
+
+        Returns
+        -------
+        numpy.ndarray
+            :math:`\log f^*(u; \nu)`, shape ``(u.size,)``.
+
+        See Also
+        --------
+        cointf.fastlik.log_fstar_fast : The exact series this approximates.
+        """
         return self.evaluate(u, nu, "f")
 
     def log_sstar(self, u, nu):
-        r"""Approximate :math:`\log S^*(u; \nu)`; see :func:`cointf.fastlik.log_sstar_fast`."""
+        r"""Approximate log survival function of the inter-crossover distance.
+
+        Parameters
+        ----------
+        u : array_like
+            Distances, ``>= 0``. Flattened to 1-D.
+        nu : float or array_like
+            Interference parameter: a scalar, or one value per element of `u`.
+
+        Returns
+        -------
+        numpy.ndarray
+            :math:`\log S^*(u; \nu)`, shape ``(u.size,)``.
+
+        See Also
+        --------
+        cointf.fastlik.log_sstar_fast : The exact series this approximates.
+        """
         return self.evaluate(u, nu, "S")
 
     def __call__(self, u_gap, nu_gap, u_end, nu_end):
@@ -350,8 +384,15 @@ class ChebyshevKernel:
 
         Parameters
         ----------
-        u_gap, nu_gap, u_end, nu_end
-            As for :func:`cointf.fastlik.series_kernel`.
+        u_gap : numpy.ndarray
+            Gaps between crossovers on the interference scale, ``>= 0``.
+        nu_gap : float or numpy.ndarray
+            Interference parameter: a scalar, or an array shaped like `u_gap`.
+        u_end : numpy.ndarray
+            Distances from a crossover to a chromosome end, on the
+            interference scale, ``>= 0``.
+        nu_end : float or numpy.ndarray
+            Interference parameter: a scalar, or an array shaped like `u_end`.
 
         Returns
         -------

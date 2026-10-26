@@ -52,6 +52,23 @@ R needs the `reticulate` package (version 1.41 or later). Python then comes in o
 To install from GitHub without a clone, use `pip install "git+https://github.com/aabiddanda/cointf@dev"`
 for Python, or `remotes::install_github("aabiddanda/cointf", subdir = "r", ref = "dev")` for R.
 
+## Documentation
+
+- [Model and likelihood](docs/model.md): the model, both recursions and their closed-form checks
+- [User guide](docs/usage.md): data format, per-meiosis parameters, kernels, quartets, simulation
+- [Numerics, accuracy and speed](docs/numerics.md): truncation, the Chebyshev kernel, the test
+  strategy and benchmarks
+- [Using cointf from R](docs/r.md): installation, how R finds Python, data conversion, an R
+  maximum-likelihood fit
+- [Example: maximum-likelihood fit of `nu` and `p`](docs/examples/mle.ipynb), with standard errors
+  and profile likelihood
+- API reference: [Python](docs/api/python.md) (every public class and function, from the
+  docstrings) and [R](docs/api/r.md) (from the R help pages)
+
+The pages read on GitHub as they are. They are also published as an HTML site at
+<https://aabiddanda.github.io/cointf/>, rebuilt from `main`. To build the site locally, see
+[Building the documentation](#building-the-documentation).
+
 ## Usage
 
 ### Python
@@ -186,6 +203,27 @@ R CMD build r && R CMD check --no-manual cointf_*.tar.gz           # full packag
 
 The R documentation in `r/man` is generated from the roxygen comments in `r/R` with
 `Rscript -e 'roxygen2::roxygenise("r")'` (needs the `roxygen2` package).
+
+### Building the documentation
+
+```bash
+pip install -e ".[docs]"                          # Sphinx, MyST-NB, numpydoc, Furo
+sphinx-build -b html docs docs/_build/html        # then open docs/_build/html/index.html
+sphinx-build -n -b html docs docs/_build/html     # same, warning about any broken reference
+```
+
+The Python API pages are generated from the docstrings at build time. The R API page
+(`docs/api/r.md`) is generated from `r/man`; after changing roxygen comments, regenerate both:
+
+```bash
+Rscript -e 'roxygen2::roxygenise("r")'
+Rscript docs/api/make_r_reference.R
+```
+
+The site is published to GitHub Pages by `.github/workflows/docs.yml`. It rebuilds on every push to
+`main`, using the same strict build as above (any warning fails it), and can also be run by hand
+with `gh workflow run docs.yml --ref main`. It does not run R, so commit the regenerated
+`docs/api/r.md` along with any roxygen changes.
 
 Several of the coding conventions were contributed by Claude and Claude Code. As such, code and
 series truncations should be reviewed as necessary.
