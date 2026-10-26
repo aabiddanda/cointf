@@ -11,6 +11,8 @@ import itertools
 
 import numpy as np
 import pytest
+from hypothesis import given, settings
+from hypothesis import strategies as st
 from scipy.integrate import quad
 from scipy.special import logsumexp
 
@@ -134,3 +136,45 @@ def test_empty_and_invalid():
 
 def test_docstring_examples_run():
     assert doctest.testmod(quartet).failed == 0
+
+
+@pytest.mark.parametrize("nu,p", [(4.0, 0.1), (9.0, 0.02)])
+def test_mixed_lengths_match_brute_force(nu, p):
+    rng = np.random.default_rng(11)
+    Ls = rng.uniform(0.5, 3.0, 12)
+    data = [np.sort(rng.uniform(0, L, rng.integers(0, 6))) for L in Ls]
+    got = loglik_quartet(data, Ls, nu, p, per_meiosis=True)
+    ref = [loglik_quartet_naive(d, L, nu, p) for d, L in zip(data, Ls)]
+    np.testing.assert_allclose(got, ref, atol=1e-10)
+
+
+@settings(max_examples=40, deadline=None)
+@given(
+    fracs=st.lists(st.floats(0.001, 0.999), min_size=0, max_size=6, unique=True),
+    L=st.floats(0.3, 3.0),
+    nu=st.floats(0.4, 30.0),
+    p=st.floats(0.0, 1.0),
+)
+def test_property_random_inputs_match_brute_force(fracs, L, nu, p):
+    xs = np.sort(np.array(fracs) * L)
+    got = loglik_quartet([xs], L, nu, p)
+    assert got == pytest.approx(loglik_quartet_naive(xs, L, nu, p), abs=1e-9)
+
+
+def test_meioses_reuse_matches_lists():
+    data = simulate_quartets(L=1.5, nu=4.0, p=0.05, n=50, seed=13)
+    mz = Meioses(data, 1.5)
+    for nu, p in [(2.0, 0.1), (6.0, 0.0), (1.0, 1.0)]:
+        assert loglik_quartet(mz, None, nu, p) == pytest.approx(
+            loglik_quartet(data, 1.5, nu, p), abs=1e-12
+        )
+
+
+def test_naive_quartet_rejects_bad_parameters():
+    for kw in [dict(L=0.0), dict(nu=0.0), dict(p=1.5)]:
+        args = dict(xs=[0.5], L=1.0, nu=4.0, p=0.1) | kw
+        with pytest.raises(ValueError):
+            loglik_quartet_naive(**args)
+    assert loglik_quartet_naive([0.2, 0.7], 1.0, 4.0, 1.0) == pytest.approx(
+        2 * np.log(2.0) - 2.0
+    )

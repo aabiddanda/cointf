@@ -113,3 +113,45 @@ def test_invalid_range_raises():
 
 def test_docstring_examples_run():
     assert doctest.testmod(chebyshev).failed == 0
+
+
+def test_fit_raises_when_pieces_run_out():
+    with pytest.raises(RuntimeError):
+        PiecewiseChebyshev(np.sin, 1e-6, 0.25, 500.0, tol=1e-14, max_pieces=4)
+
+
+def test_n_pieces_matches_coefficients():
+    fit = ChebyshevKernel().fits(4.0)[0]
+    assert fit.n_pieces == fit.coefs.shape[1] == fit.u_lo.size
+
+
+def test_error_stays_small_as_nu_varies(testbed):
+    # Piece layouts change with nu; the likelihood error must stay small
+    # across those changes, not only at a few chosen values.
+    data, prm = testbed
+    mz = Meioses(data, prm["L"])
+    kern = ChebyshevKernel(max_cached=8)
+    for nu in np.linspace(3.0, 5.0, 41):
+        exact = loglik_fast(mz, None, nu, 0.05)
+        approx = loglik_fast(mz, None, nu, 0.05, kernel=kern)
+        assert abs(approx - exact) < 1e-10
+
+
+@pytest.mark.parametrize("nu,p", [(0.6, 0.1), (1.0, 0.4), (5.0, 1.0)])
+def test_loglik_edge_parameters(testbed, nu, p):
+    data, prm = testbed
+    exact = loglik_fast(data, prm["L"], nu, p, per_meiosis=True)
+    approx = loglik_fast(
+        data, prm["L"], nu, p, kernel=ChebyshevKernel(), per_meiosis=True
+    )
+    np.testing.assert_allclose(approx, exact, atol=1e-12)
+
+
+def test_crossovers_at_chromosome_ends():
+    # Zero distances to the ends use the exact series (S*(0) = 1).
+    data = [[0.0, 0.7, 1.5], [0.0], [1.5]]
+    exact = loglik_fast(data, 1.5, 4.0, 0.05, per_meiosis=True)
+    approx = loglik_fast(
+        data, 1.5, 4.0, 0.05, kernel=ChebyshevKernel(), per_meiosis=True
+    )
+    np.testing.assert_allclose(approx, exact, atol=1e-12)
