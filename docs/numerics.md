@@ -65,7 +65,7 @@ Measured accuracy (maximum absolute error in the log values, $u \in [10^{-6}, 5]
 
 ## How correctness is tested
 
-The test suite (about 180 tests, 100% line and branch coverage) builds a chain of independent
+The test suite (about 185 tests, 100% line and branch coverage) builds a chain of independent
 checks:
 
 1. **Series.** The fast series match the 200-term reference in `cointf.naive` to $10^{-10}$
@@ -80,6 +80,8 @@ checks:
 4. **Quartets.** `loglik_quartet` matches brute force over $3^n$ labelings and, independently,
    the sum of single-meiosis likelihoods over all $2^n$ splits of the crossovers between the two
    meioses. It also matches the rate-2 Poisson closed form and simulated $P(N = 0, 1)$.
+   Two-parameter maximum-likelihood fits recover $(\nu, p)$ within 3 standard errors, including
+   at the $p = 0$ boundary (see [Inference from quartet data](#inference-from-quartet-data)).
 5. **Chebyshev kernel.** Compared with the exact kernel on dense grids over
    $\nu \in [0.3, 100]$, and end to end on the test bed, per-meiosis $\nu$ and long maps.
 
@@ -119,3 +121,30 @@ labelings.
 |---|---|---|
 | 1.5 | 207 ms | 44 ms |
 | 2.5 | 553 ms | 116 ms |
+
+## Inference from quartet data
+
+Phase-unknown data carry less information than the same meioses with phase known, because the
+likelihood must average over which meiosis each crossover came from. A simulation study measured
+how much, and whether standard inference still works. It used 40 replicates per setting. Each
+replicate fitted (log $\nu$, logit $p$) by Nelder–Mead to the pooled quartets, and to the same
+meioses with phase known for comparison. Coverage is for 95% Wald intervals on the fitting scale.
+
+| $L$, $\nu$, $p$, quartets | median $\hat\nu$ (quartet / phase known) | SD of $\log\hat\nu$ (quartet / phase known) | $\nu$ coverage | $p$ coverage |
+|---|---|---|---|---|
+| 2.0, 4, 0.05, 500 | 4.03 / 3.89 | 0.179 / 0.096 | 0.82 / 0.90 | 0.78 / 0.97 |
+| 2.0, 4, 0.05, 2000 | 3.99 / 3.98 | 0.087 / 0.041 | 0.90 / 0.95 | 0.97 / 0.97 |
+| 1.5, 10, 0.1, 1000 | 10.00 / 9.95 | 0.089 / 0.070 | 1.00 / 1.00 | 0.95 / 0.88 |
+| 2.5, 6, 0.02, 1000 | 6.11 / 6.05 | 0.066 / 0.039 | 0.93 / 0.95 | 0.97 / 0.93 |
+
+- **No bias.** Quartet estimates are centred on the truth in every setting.
+- **Precision.** The SD of $\log\hat\nu$ is 1.3–2.1× that of phase-known fits to the same
+  meioses. Since information scales with 1/SD², a quartet carries roughly 25–60% of the
+  information about $\nu$ that its two phased meioses would.
+- **Intervals.** Wald intervals are close to nominal from about 1000 quartets, but cover only
+  0.78–0.82 with 500. For small datasets, prefer profile-likelihood intervals (as in the
+  [example](examples/mle.ipynb)). With 40 replicates, the Monte Carlo SE of a coverage near 0.95
+  is about 0.035.
+- **At $p = 0$.** In 10 replicates with no escape, $\hat p$ was exactly 0 in 6, $\hat\nu$
+  ranged from 5.6 to 7.0 (truth 6), and the likelihood-ratio statistic for $p = 0$ never reached
+  2.71, the 5% critical value at a boundary.
