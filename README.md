@@ -144,17 +144,48 @@ The gap widens with crossovers per meiosis, because xoi enumerates all 2ⁿ path
 `loglik_fast` also evaluates only the series terms that matter for each distance (about 10),
 with explicit error bounds, and computes `f*` only at gaps and `S*` only at chromosome ends.
 
-## Development
+## Development and testing
+
+All commands below run from the root of a clone. There are two test suites: one for the Python
+package (`tests/`) and one for the R interface (`r/tests/`).
+
+### Python tests
 
 ```bash
-pip install -e ".[tests]"
-pytest                                                  # Python tests
-RETICULATE_PYTHON=$(which python) Rscript -e 'testthat::test_local("r")'   # R tests
+pip install -e ".[tests]"     # editable install plus pytest, pytest-cov, pytest-xdist, hypothesis
+pytest                        # full suite, about 10 s
+pytest tests/test_quartet.py  # one file
+pytest -k chebyshev           # tests whose names match a pattern
+pytest -n auto                # in parallel
+pytest --cov=cointf --cov-branch --cov-report=term-missing   # with coverage
+```
+
+### R tests
+
+The R tests call the Python package, so first install the R package and choose which Python it
+uses. To test your local changes, point `RETICULATE_PYTHON` at the environment where you ran
+`pip install -e .` above:
+
+```bash
+Rscript -e 'install.packages(c("reticulate", "testthat"))'   # once
+R CMD INSTALL r
+export RETICULATE_PYTHON=$(which python)                      # the Python with your cointf install
+Rscript -e 'testthat::test_local("r")'                        # full R suite
+Rscript -e 'testthat::test_local("r", filter = "reticulate")' # one file (test-reticulate.R)
+```
+
+Without `RETICULATE_PYTHON`, the R package installs `cointf` from the GitHub `dev` branch, so the
+tests would run against that version rather than your local code.
+
+Two optional checks:
+
+```bash
+COINTF_TEST_INSTALL=true Rscript -e 'testthat::test_local("r")'   # also test the automatic GitHub install (needs network)
+R CMD build r && R CMD check --no-manual cointf_*.tar.gz           # full package check, including the tests
 ```
 
 The R documentation in `r/man` is generated from the roxygen comments in `r/R` with
-`Rscript -e 'roxygen2::roxygenise("r")'`. Set `COINTF_TEST_INSTALL=true` to also run the R test
-that installs the Python package from GitHub into a fresh environment (needs network access).
+`Rscript -e 'roxygen2::roxygenise("r")'` (needs the `roxygen2` package).
 
 Several of the coding conventions were contributed by Claude and Claude Code. As such, code and
 series truncations should be reviewed as necessary.

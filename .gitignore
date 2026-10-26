@@ -31,5 +31,6 @@ docs/_build/
 # R
 *.Rcheck/
 r/*.tar.gz
+cointf_*.tar.gz
 .Rhistory
 .Rproj.user/
