@@ -1,8 +1,11 @@
 """Tests for the fast exact Housworth-Stahl likelihood (`cointf.fastlik`).
 
-Every likelihood test compares against the slow reference implementation in
-`cointf.naive`, which is itself checked against brute-force enumeration,
+Likelihood values are compared against the slow reference implementation
+in `cointf.naive`, which is itself checked against brute-force enumeration,
 the nu = 1 Poisson case and simulated count probabilities in test_naive.py.
+The exceptions are the closed-form checks (nu = 1 and p = 1 are Poisson)
+and the kernel tests, which check the kernel interface against the default
+`series_kernel` instead.
 """
 
 import doctest

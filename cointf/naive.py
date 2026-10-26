@@ -19,7 +19,14 @@ unobserved. The likelihood sums over all labelings with a forward recursion
 on the position of the most recent interference crossover
 (:math:`O(n^2)` per meiosis). :math:`f^*`, its survival function and its
 integrated tail are evaluated in log space from a 200-term gamma series.
+
+:func:`loglik_quartet_naive` is the matching reference for phase-unknown
+(quartet) data, the pooled crossovers of two meioses. It sums directly over
+all :math:`3^n` labelings (interference in meiosis A, interference in
+meiosis B, or escape) and is used to validate :mod:`cointf.quartet`.
 """
+
+import itertools
 
 import numpy as np
 from scipy.special import gammaincc, logsumexp
@@ -31,6 +38,7 @@ __all__ = [
     "log_tail_integral",
     "loglik_meiosis_naive",
     "loglik_naive",
+    "loglik_quartet_naive",
 ]
 
 default_kmax = 200
@@ -226,3 +234,75 @@ def loglik_naive(data, L, nu, p, kmax=default_kmax):
         Sum of :func:`loglik_meiosis_naive` over the meioses.
     """
     return sum(loglik_meiosis_naive(d, L, nu, p, kmax=kmax) for d in data)
+
+
+def loglik_quartet_naive(xs, L, nu, p, kmax=default_kmax):
+    r"""Brute-force log-likelihood of one phase-unknown (quartet) dataset.
+
+    Sums directly over all :math:`3^n` labelings of the observed crossovers
+    as interference crossovers of meiosis A, of meiosis B, or escape
+    crossovers (a rate-:math:`2p` Poisson process). Only practical for small
+    :math:`n`; used to validate :func:`cointf.quartet.loglik_quartet`.
+
+    Parameters
+    ----------
+    xs : array_like
+        Pooled crossover positions of two meioses, in ``[0, L]`` and
+        distinct.
+    L : float
+        Chromosome length in Morgans, ``> 0``.
+    nu : float
+        Interference parameter, ``> 0``.
+    p : float
+        Escape fraction in each meiosis, in ``[0, 1]``.
+    kmax : int, default 200
+        Number of gamma-series terms.
+
+    Returns
+    -------
+    float
+        Log of the joint density of the pooled crossover positions.
+
+    Raises
+    ------
+    ValueError
+        If `L`, `nu` or `p` is out of range.
+    """
+    if L <= 0:
+        raise ValueError(f"L must be > 0, got {L!r}")
+    if nu <= 0:
+        raise ValueError(f"nu must be > 0, got {nu!r}")
+    if not 0.0 <= p <= 1.0:
+        raise ValueError(f"p must be in [0, 1], got {p!r}")
+    xs = np.sort(np.asarray(xs, dtype=np.float64))
+    n = xs.size
+    q = 1.0 - p
+    if q == 0.0:
+        return n * np.log(2.0) - 2.0 * L
+
+    with np.errstate(divide="ignore"):
+        log_2p = np.log(2.0 * p)
+    log_q = np.log(q)
+    first = log_q + log_sstar(q * xs, nu, kmax) if n else np.empty(0)
+    last = log_sstar(q * (L - xs), nu, kmax) if n else np.empty(0)
+    gap = np.full((n, n), -np.inf)
+    iu, ju = np.triu_indices(n, k=1)
+    if iu.size:
+        gap[iu, ju] = log_q + log_fstar(q * (xs[ju] - xs[iu]), nu, kmax)
+    log_empty = log_tail_integral(q * L, nu, kmax)
+
+    def log_renewal(ix):
+        """Log density of one meiosis' interference crossovers at xs[ix]."""
+        if not ix:
+            return log_empty
+        inner = sum(gap[a, b] for a, b in zip(ix[:-1], ix[1:]))
+        return first[ix[0]] + inner + last[ix[-1]]
+
+    terms = []
+    for labels in itertools.product((0, 1, 2), repeat=n):
+        in_a = [i for i, lab in enumerate(labels) if lab == 1]
+        in_b = [i for i, lab in enumerate(labels) if lab == 2]
+        n_escape = n - len(in_a) - len(in_b)
+        escape = n_escape * log_2p if n_escape else 0.0
+        terms.append(escape + log_renewal(in_a) + log_renewal(in_b))
+    return float(logsumexp(terms) - 2.0 * p * L)

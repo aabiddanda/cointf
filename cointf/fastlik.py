@@ -588,7 +588,10 @@ def series_kernel(u_gap, nu_gap, u_end, nu_end):
     The recursion needs :math:`f^*` only at gaps between interference
     crossovers and :math:`S^*` only at distances to the chromosome ends, so
     a kernel receives the two sets separately. Any callable with this
-    signature can be passed as ``kernel`` to :func:`loglik_fast`.
+    signature can be passed as ``kernel`` to :func:`loglik_fast` or
+    :func:`cointf.quartet.loglik_quartet`.
+    :class:`cointf.chebyshev.ChebyshevKernel` is a faster, approximate
+    alternative.
 
     Parameters
     ----------
@@ -626,7 +629,10 @@ class Meioses:
         Crossover positions in Morgans, one 1-D sequence per meiosis (a
         meiosis here is one chromosome in one gamete). Positions must be
         finite, lie in ``[0, L]`` and be distinct within a meiosis; order
-        does not matter.
+        does not matter. For :func:`cointf.quartet.loglik_quartet` each
+        entry is instead one quartet, the pooled crossovers of two meioses
+        of the same chromosome, and "meiosis" in the attributes below means
+        one such entry.
     L : float or array_like
         Chromosome length in Morgans, ``> 0``: a scalar shared by all meioses
         or one value per meiosis.
@@ -791,8 +797,9 @@ def loglik_fast(data, L, nu, p, *, kernel=None, per_meiosis=False):
         Function ``kernel(u_gap, nu_gap, u_end, nu_end) -> (log_f, log_S)``
         returning :math:`\log f^*` at the gaps `u_gap` and :math:`\log S^*`
         at the end distances `u_end` (see :func:`series_kernel`, the
-        default). The `nu` arguments are scalars when `nu` is shared by all
-        meioses, otherwise arrays matching their distances.
+        default, and :class:`cointf.chebyshev.ChebyshevKernel`, a faster
+        approximation). The `nu` arguments are scalars when `nu` is shared
+        by all meioses, otherwise arrays matching their distances.
     per_meiosis : bool, default False
         If True, return one log-likelihood per meiosis instead of the sum.
 
@@ -828,6 +835,35 @@ def loglik_fast(data, L, nu, p, *, kernel=None, per_meiosis=False):
     >>> per.shape
     (3,)
     """
+    mz, nu, p = prepare_inputs(data, L, nu, p)
+    if mz.M == 0:
+        return np.empty(0) if per_meiosis else 0.0
+
+    with np.errstate(divide="ignore", invalid="ignore", over="ignore"):
+        ll = loglik_arrays(mz, nu, p, kernel or series_kernel)
+    return ll if per_meiosis else float(ll.sum())
+
+
+def prepare_inputs(data, L, nu, p):
+    """Validate likelihood arguments and build the :class:`Meioses` if needed.
+
+    Parameters
+    ----------
+    data, L, nu, p
+        As for :func:`loglik_fast`.
+
+    Returns
+    -------
+    mz : Meioses
+        Prepared crossover data.
+    nu, p : float or numpy.ndarray
+        Parameters as floats or length-``mz.M`` arrays.
+
+    Raises
+    ------
+    ValueError
+        As for :func:`loglik_fast`.
+    """
     if isinstance(data, Meioses):
         if L is not None:
             raise ValueError("L must be None when data is a Meioses object")
@@ -843,12 +879,7 @@ def loglik_fast(data, L, nu, p, *, kernel=None, per_meiosis=False):
         raise ValueError("nu must be finite and > 0")
     if not np.all((np.asarray(p) >= 0.0) & (np.asarray(p) <= 1.0)):
         raise ValueError("p must lie in [0, 1]")
-    if mz.M == 0:
-        return np.empty(0) if per_meiosis else 0.0
-
-    with np.errstate(divide="ignore", invalid="ignore", over="ignore"):
-        ll = loglik_arrays(mz, nu, p, kernel or series_kernel)
-    return ll if per_meiosis else float(ll.sum())
+    return mz, nu, p
 
 
 def loglik_arrays(mz, nu, p, kernel):
@@ -878,28 +909,9 @@ def loglik_arrays(mz, nu, p, kernel):
     ValueError
         If the kernel's outputs are not shaped like its inputs.
     """
-    M = mz.M
-    p_m = np.broadcast_to(p, (M,))
-    q_m = 1.0 - p_m
-    poisson = q_m == 0.0  # p = 1: pure Poisson, handled in closed form below
-    q_eff = np.where(poisson, 1.0, q_m)
-    log_q = np.log(q_eff)
+    p_m, poisson, log_q, lf, lS, log_G = renewal_terms(mz, nu, p, kernel)
     log_p = np.log(p_m)
-
-    # Every kernel evaluation in one call: f* at gaps, S* at end distances.
-    scalar_q, scalar_nu = np.ndim(p) == 0, np.ndim(nu) == 0
-    u_gap = (q_eff[0] if scalar_q else q_eff[mz.row_gap]) * mz.x_gap
-    u_end = (q_eff[0] if scalar_q else q_eff[mz.row_end]) * mz.x_end
-    nu_gap = nu if scalar_nu else nu[mz.row_gap]
-    nu_end = nu if scalar_nu else nu[mz.row_end]
-    lf, lS = kernel(u_gap, nu_gap, u_end, nu_end)
-    lf = np.asarray(lf, dtype=np.float64)
-    lS = np.asarray(lS, dtype=np.float64)
-    if lf.shape != u_gap.shape or lS.shape != u_end.shape:
-        raise ValueError("kernel must return arrays shaped like u_gap and u_end")
-
-    log_G = log_tail_per_meiosis(q_eff * mz.L, nu)
-    ll = np.empty(M)
+    ll = np.empty(mz.M)
     ll[mz.no_crossover] = log_G[mz.no_crossover]
     for n, idx, iu, ju, eb, gb in mz.groups:
         k = idx.size
@@ -925,6 +937,62 @@ def loglik_arrays(mz, nu, p, kernel):
     if poisson.any():
         ll[poisson] = -mz.L[poisson]  # rate-1 Poisson with log p = 0
     return ll
+
+
+def renewal_terms(mz, nu, p, kernel):
+    """Evaluate every interference-pathway term the recursion needs.
+
+    Shared by the single-meiosis and quartet recursions.
+
+    Parameters
+    ----------
+    mz : Meioses
+        Prepared crossover data.
+    nu, p : float or numpy.ndarray
+        Validated parameters: floats or length-``mz.M`` arrays.
+    kernel : callable
+        Kernel ``kernel(u_gap, nu_gap, u_end, nu_end) -> (log_f, log_S)``.
+
+    Returns
+    -------
+    p_m : numpy.ndarray
+        Escape fraction per meiosis, shape ``(M,)``.
+    poisson : numpy.ndarray
+        Meioses with ``p = 1``, which the caller handles in closed form; their
+        other terms are computed with ``q = 1`` and are not meaningful.
+    log_q : numpy.ndarray
+        :math:`\\log q` per meiosis.
+    lf : numpy.ndarray
+        :math:`\\log f^*` at ``q * mz.x_gap``.
+    lS : numpy.ndarray
+        :math:`\\log S^*` at ``q * mz.x_end``.
+    log_G : numpy.ndarray
+        :math:`\\log G(q L)` per meiosis.
+
+    Raises
+    ------
+    ValueError
+        If the kernel's outputs are not shaped like its inputs.
+    """
+    p_m = np.broadcast_to(p, (mz.M,))
+    q_m = 1.0 - p_m
+    poisson = q_m == 0.0
+    q_eff = np.where(poisson, 1.0, q_m)
+
+    # Every kernel evaluation in one call: f* at gaps, S* at end distances.
+    scalar_q, scalar_nu = np.ndim(p) == 0, np.ndim(nu) == 0
+    u_gap = (q_eff[0] if scalar_q else q_eff[mz.row_gap]) * mz.x_gap
+    u_end = (q_eff[0] if scalar_q else q_eff[mz.row_end]) * mz.x_end
+    nu_gap = nu if scalar_nu else nu[mz.row_gap]
+    nu_end = nu if scalar_nu else nu[mz.row_end]
+    lf, lS = kernel(u_gap, nu_gap, u_end, nu_end)
+    lf = np.asarray(lf, dtype=np.float64)
+    lS = np.asarray(lS, dtype=np.float64)
+    if lf.shape != u_gap.shape or lS.shape != u_end.shape:
+        raise ValueError("kernel must return arrays shaped like u_gap and u_end")
+
+    log_G = log_tail_per_meiosis(q_eff * mz.L, nu)
+    return p_m, poisson, np.log(q_eff), lf, lS, log_G
 
 
 def log_tail_per_meiosis(x, nu):

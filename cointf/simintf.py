@@ -7,7 +7,7 @@ Poisson process with rate ``p``. Observed crossovers are their superposition.
 
 import numpy as np
 
-__all__ = ["simulate_meioses", "simulate_meiosis"]
+__all__ = ["simulate_meioses", "simulate_meiosis", "simulate_quartets"]
 
 
 size_biased_kmax = 200
@@ -239,3 +239,58 @@ def simulate_meioses(L, nu, p, n, seed):
         raise ValueError(f"seed must be > 0, got {seed!r}")
     rng = np.random.default_rng(seed=seed)
     return [simulate_meiosis(L=L, nu=nu, p=p, rng=rng) for _ in range(n)]
+
+
+def simulate_quartets(L, nu, p, n, seed):
+    """Simulate phase-unknown (quartet) crossover data.
+
+    Each dataset pools the crossovers of two independent meioses with the
+    same parameters, as observed for one parent in a family with two
+    offspring when it is unknown which offspring inherited each crossover.
+
+    Parameters
+    ----------
+    L : float
+        Chromosome length in Morgans, ``> 0``.
+    nu : float
+        Interference parameter, ``> 0``.
+    p : float
+        Fraction of crossovers escaping interference, in ``[0, 1]``.
+    n : int
+        Number of quartets, ``> 0``.
+    seed : int
+        Seed for :func:`numpy.random.default_rng`, ``> 0``.
+
+    Returns
+    -------
+    list of numpy.ndarray
+        Sorted pooled crossover positions in Morgans, one array per quartet.
+
+    Raises
+    ------
+    ValueError
+        If `n` or `seed` is not positive, or a model parameter is out of range.
+
+    See Also
+    --------
+    cointf.quartet.loglik_quartet : Likelihood of quartet data.
+
+    Examples
+    --------
+    >>> data = simulate_quartets(L=1.5, nu=4.0, p=0.05, n=3, seed=7)
+    >>> len(data)
+    3
+    """
+    if n <= 0:
+        raise ValueError(f"n must be > 0, got {n!r}")
+    if seed <= 0:
+        raise ValueError(f"seed must be > 0, got {seed!r}")
+    rng = np.random.default_rng(seed=seed)
+    return [
+        np.sort(
+            np.concatenate(
+                [simulate_meiosis(L=L, nu=nu, p=p, rng=rng) for _ in range(2)]
+            )
+        )
+        for _ in range(n)
+    ]
