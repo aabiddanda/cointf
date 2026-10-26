@@ -1,5 +1,12 @@
 # `cointf`
 
+[![Documentation](https://img.shields.io/badge/docs-aabiddanda.github.io%2Fcointf-blue)](https://aabiddanda.github.io/cointf/)
+[![Docs build](https://github.com/aabiddanda/cointf/actions/workflows/docs.yml/badge.svg)](https://github.com/aabiddanda/cointf/actions/workflows/docs.yml)
+[![Release](https://img.shields.io/github/v/release/aabiddanda/cointf?include_prereleases&sort=semver)](https://github.com/aabiddanda/cointf/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Python](https://img.shields.io/badge/python-%E2%89%A53.11-3776AB?logo=python&logoColor=white)](#python)
+[![R](https://img.shields.io/badge/R-reticulate-276DC3?logo=r&logoColor=white)](#r)
+
 Fast, exact likelihoods for the Housworth-Stahl model of crossover interference.
 
 Crossovers come from two pathways: an interference pathway, a stationary renewal process with
