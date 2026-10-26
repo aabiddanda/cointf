@@ -65,8 +65,8 @@ Measured accuracy (maximum absolute error in the log values, $u \in [10^{-6}, 5]
 
 ## How correctness is tested
 
-The test suite (about 185 tests, 100% line and branch coverage) builds a chain of independent
-checks:
+The Python test suite (about 185 tests, 100% line and branch coverage) builds a chain of
+independent checks:
 
 1. **Series.** The fast series match the 200-term reference in `cointf.naive` to $10^{-10}$
    across $\nu \in [0.2, 150]$. $\nu = 1$ reproduces the exponential distribution, and $G$ matches
@@ -84,6 +84,10 @@ checks:
    at the $p = 0$ boundary (see [Inference from quartet data](#inference-from-quartet-data)).
 5. **Chebyshev kernel.** Compared with the exact kernel on dense grids over
    $\nu \in [0.3, 100]$, and end to end on the test bed, per-meiosis $\nu$ and long maps.
+6. **R interface.** A separate testthat suite in `r/tests` reproduces the reference values above
+   through reticulate, and checks that R results are identical to calling Python directly.
+   It also covers input conversion, Python objects surviving round trips, and loading the
+   package in fresh R sessions. See [Using cointf from R](r.md).
 
 The fixed test bed (`tests/data`, 200 meioses simulated with $L = 1.5$, $\nu = 4$, $p = 0.05$,
 seed 7) anchors regression values: the exact log-likelihood is about $-269.79$ at the truth and

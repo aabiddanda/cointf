@@ -1,9 +1,15 @@
 # User guide
 
+This guide uses Python. The R interface has the same functions and arguments; see
+[Using cointf from R](r.md) for what differs.
+
 ## Installation
 
+From a clone of the repository, on the `dev` branch:
+
 ```bash
-pip install -e ".[tests]"   # from a clone; pulls numpy, scipy and the test tools
+pip install .               # numpy and scipy are installed as dependencies
+pip install -e ".[tests]"   # for development: editable install plus the test tools
 pytest                      # optional: run the test suite
 ```
 

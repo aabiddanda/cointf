@@ -58,6 +58,8 @@ for Python, or `remotes::install_github("aabiddanda/cointf", subdir = "r", ref =
 - [User guide](docs/usage.md): data format, per-meiosis parameters, kernels, quartets, simulation
 - [Numerics, accuracy and speed](docs/numerics.md): truncation, the Chebyshev kernel, the test
   strategy and benchmarks
+- [Using cointf from R](docs/r.md): installation, how R finds Python, data conversion, an R
+  maximum-likelihood fit
 - [Example: maximum-likelihood fit of `nu` and `p`](docs/examples/mle.ipynb), with standard errors
   and profile likelihood
 
