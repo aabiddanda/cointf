@@ -126,6 +126,7 @@ labelings.
 | 1.5 | 207 ms | 44 ms |
 | 2.5 | 553 ms | 116 ms |
 
+(inference-from-quartet-data)=
 ## Inference from quartet data
 
 Phase-unknown data carry less information than the same meioses with phase known, because the

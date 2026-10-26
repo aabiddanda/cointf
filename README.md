@@ -62,6 +62,11 @@ for Python, or `remotes::install_github("aabiddanda/cointf", subdir = "r", ref =
   maximum-likelihood fit
 - [Example: maximum-likelihood fit of `nu` and `p`](docs/examples/mle.ipynb), with standard errors
   and profile likelihood
+- API reference: [Python](docs/api/python.md) (every public class and function, from the
+  docstrings) and [R](docs/api/r.md) (from the R help pages)
+
+The pages read on GitHub as they are. To build them as an HTML site (Sphinx, Furo theme), see
+[Building the documentation](#building-the-documentation).
 
 ## Usage
 
@@ -197,6 +202,22 @@ R CMD build r && R CMD check --no-manual cointf_*.tar.gz           # full packag
 
 The R documentation in `r/man` is generated from the roxygen comments in `r/R` with
 `Rscript -e 'roxygen2::roxygenise("r")'` (needs the `roxygen2` package).
+
+### Building the documentation
+
+```bash
+pip install -e ".[docs]"                          # Sphinx, MyST-NB, numpydoc, Furo
+sphinx-build -b html docs docs/_build/html        # then open docs/_build/html/index.html
+sphinx-build -n -b html docs docs/_build/html     # same, warning about any broken reference
+```
+
+The Python API pages are generated from the docstrings at build time. The R API page
+(`docs/api/r.md`) is generated from `r/man`; after changing roxygen comments, regenerate both:
+
+```bash
+Rscript -e 'roxygen2::roxygenise("r")'
+Rscript docs/api/make_r_reference.R
+```
 
 Several of the coding conventions were contributed by Claude and Claude Code. As such, code and
 series truncations should be reviewed as necessary.

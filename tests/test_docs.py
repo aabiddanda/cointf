@@ -9,7 +9,10 @@ from pathlib import Path
 import pytest
 
 root = Path(__file__).parent.parent
-pages = [root / "README.md", *sorted((root / "docs").glob("*.md"))]
+pages = [
+    root / "README.md",
+    *sorted(p for p in (root / "docs").rglob("*.md") if "_build" not in p.parts),
+]
 signature_only = re.compile(r"^\s*\w+\(.*\)\s*->|^\s*loglik_fast\(data, L, nu, p, \*")
 
 

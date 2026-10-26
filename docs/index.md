@@ -17,6 +17,8 @@ repeated evaluation inside optimisers and samplers, and for parameters that vary
 | [Numerics, accuracy and speed](numerics.md) | How the series are truncated, the Chebyshev kernel, how correctness is tested, and benchmarks |
 | [Using cointf from R](r.md) | Installing the R package, how it finds Python, data conversion, an R maximum-likelihood fit |
 | [Example: maximum-likelihood fit](examples/mle.ipynb) | Estimating $\nu$ and $p$ from a dataset, with standard errors and a likelihood surface |
+| [Python API](api/python.md) | Every public class and function, with parameters, return values and examples |
+| [R API](api/r.md) | Every function in the R package, generated from its help pages |
 
 ## Installation
 
@@ -57,3 +59,22 @@ for `Meioses` and `ChebyshevKernel`); see [Using cointf from R](r.md).
   $L$, for every $(\nu, p)$.
 - $\nu = 1$ means no interference; $\nu > 1$ means positive interference. $p = 0$ is the pure
   interference model and $p = 1$ a Poisson process.
+
+```{toctree}
+:hidden:
+:caption: Guide
+
+model
+usage
+r
+numerics
+examples/mle
+```
+
+```{toctree}
+:hidden:
+:caption: API reference
+
+api/python
+api/r
+```
