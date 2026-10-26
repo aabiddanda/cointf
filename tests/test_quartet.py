@@ -14,6 +14,7 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 from scipy.integrate import quad
+from scipy.optimize import minimize, minimize_scalar
 from scipy.special import logsumexp
 
 import cointf.quartet as quartet
@@ -113,6 +114,66 @@ def test_quartet_mle_near_truth():
     nus = np.array([3.0, 4.5, 6.0, 8.0, 11.0])
     ll = [loglik_quartet(mz, None, v, 0.05) for v in nus]
     assert nus[int(np.argmax(ll))] == 6.0
+
+
+def fit_quartets(mz, x0):
+    """Maximum-likelihood fit of (log nu, logit p) with Wald standard errors."""
+    kernel = ChebyshevKernel()
+
+    def negloglik(t):
+        nu, p = np.exp(t[0]), 1.0 / (1.0 + np.exp(-t[1]))
+        return -loglik_quartet(mz, None, nu, p, kernel=kernel)
+
+    res = minimize(negloglik, x0, method="Nelder-Mead", options=dict(xatol=1e-6))
+    h, eye = 1e-3, np.eye(2) * 1e-3
+    hess = np.array(
+        [
+            [
+                (
+                    negloglik(res.x + eye[i] + eye[j])
+                    - negloglik(res.x + eye[i] - eye[j])
+                    - negloglik(res.x - eye[i] + eye[j])
+                    + negloglik(res.x - eye[i] - eye[j])
+                )
+                / (4 * h * h)
+                for j in range(2)
+            ]
+            for i in range(2)
+        ]
+    )
+    return res.x, np.sqrt(np.diag(np.linalg.inv(hess)))
+
+
+@pytest.mark.parametrize("nu,p,seed", [(4.0, 0.05, 21), (10.0, 0.1, 22)])
+def test_quartet_mle_recovers_both_parameters(nu, p, seed):
+    # A full two-parameter fit from a poor start lands within 3 standard
+    # errors of the truth for both parameters.
+    mz = Meioses(simulate_quartets(L=2.0, nu=nu, p=p, n=1500, seed=seed), 2.0)
+    est, se = fit_quartets(mz, x0=[np.log(2.0), -3.0])
+    truth = np.array([np.log(nu), np.log(p / (1.0 - p))])
+    assert np.all(np.isfinite(se))
+    assert np.all(np.abs(est - truth) < 3.0 * se)
+
+
+def test_quartet_mle_at_p_boundary():
+    # With no escape in truth, p_hat is near 0 and the likelihood-ratio test of
+    # p = 0 stays below 2.71, the 5% critical value at a boundary (a 50:50
+    # mixture of 0 and chi-square with 1 df).
+    mz = Meioses(simulate_quartets(L=2.5, nu=6.0, p=0.0, n=1000, seed=23), 2.5)
+    kernel = ChebyshevKernel()
+    est, _ = fit_quartets(mz, x0=[np.log(3.0), -3.0])
+    p_hat = 1.0 / (1.0 + np.exp(-est[1]))
+    ll_full = loglik_quartet(mz, None, np.exp(est[0]), p_hat, kernel=kernel)
+    null = minimize_scalar(
+        lambda a: -loglik_quartet(mz, None, np.exp(a), 0.0, kernel=kernel),
+        bounds=(0.0, 4.0),
+        method="bounded",
+    )
+    assert p_hat < 0.01
+    assert abs(np.exp(null.x) - 6.0) < 1.0
+    # The full fit cannot be worse than the null, up to optimiser tolerance.
+    assert ll_full + null.fun > -1e-3
+    assert 2.0 * (ll_full + null.fun) < 2.71
 
 
 def test_chebyshev_kernel_matches_series():
