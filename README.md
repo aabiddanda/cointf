@@ -52,6 +52,15 @@ R needs the `reticulate` package (version 1.41 or later). Python then comes in o
 To install from GitHub without a clone, use `pip install "git+https://github.com/aabiddanda/cointf@dev"`
 for Python, or `remotes::install_github("aabiddanda/cointf", subdir = "r", ref = "dev")` for R.
 
+## Documentation
+
+- [Model and likelihood](docs/model.md): the model, both recursions and their closed-form checks
+- [User guide](docs/usage.md): data format, per-meiosis parameters, kernels, quartets, simulation
+- [Numerics, accuracy and speed](docs/numerics.md): truncation, the Chebyshev kernel, the test
+  strategy and benchmarks
+- [Example: maximum-likelihood fit of `nu` and `p`](docs/examples/mle.ipynb), with standard errors
+  and profile likelihood
+
 ## Usage
 
 ### Python
