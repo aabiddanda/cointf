@@ -8,7 +8,53 @@ gamma-mixture gaps governed by `nu`, and an escape pathway, a Poisson process ca
 recursion per meiosis. For phase-unknown (quartet) data, where the crossovers of two meioses are
 pooled, an O(n³) recursion sums over the assignment of each crossover to either meiosis.
 
+## Installation
+
+`cointf` is not on PyPI or CRAN. Install it from a clone of this repository. The current code is
+on the `dev` branch, while `main` still holds an older version, so check out `dev` until it is
+merged into `main`.
+
+```bash
+git clone https://github.com/aabiddanda/cointf.git
+cd cointf
+git checkout dev
+```
+
+### Python
+
+```bash
+pip install .                # numpy and scipy are installed as dependencies
+pip install -e ".[tests]"    # for development: editable install plus pytest and hypothesis
+```
+
+### R
+
+The R package in `r/` is a thin interface to the Python package through
+[reticulate](https://rstudio.github.io/reticulate/). From the root of the clone:
+
+```bash
+R CMD INSTALL r
+```
+
+R needs the `reticulate` package (version 1.41 or later). Python then comes in one of two ways:
+
+- **Automatic (default).** On first use, reticulate builds a private Python environment and
+  installs `cointf` from the GitHub repository (`dev` branch) into it. This needs internet access
+  once, and takes about 20 seconds.
+- **Your own environment.** If you already ran `pip install .` in a Python environment, point
+  reticulate at it before loading the package:
+
+  ```r
+  Sys.setenv(RETICULATE_PYTHON = "/path/to/venv/bin/python")
+  library(cointf)
+  ```
+
+To install from GitHub without a clone, use `pip install "git+https://github.com/aabiddanda/cointf@dev"`
+for Python, or `remotes::install_github("aabiddanda/cointf", subdir = "r", ref = "dev")` for R.
+
 ## Usage
+
+### Python
 
 ```python
 from cointf import Meioses, loglik_fast, loglik_naive, simulate_meioses
@@ -37,6 +83,36 @@ from cointf import loglik_quartet, simulate_quartets
 quartets = simulate_quartets(L=1.5, nu=4.0, p=0.05, n=200, seed=7)
 loglik_quartet(quartets, 1.5, nu=4.0, p=0.05)
 ```
+
+### R
+
+The R functions have the same names and arguments as the Python ones. Crossover data are a list
+with one numeric vector of positions (in Morgans) per meiosis.
+
+```r
+library(cointf)
+
+data <- simulate_meioses(L = 1.5, nu = 4, p = 0.05, n = 200, seed = 7)  # same data as Python
+loglik_fast(data, 1.5, nu = 4, p = 0.05)
+loglik_fast(data, 1.5, nu = 4, p = 0.05, per_meiosis = TRUE)
+
+mz <- meioses(data, 1.5)                  # prepare once, evaluate many times
+kernel <- chebyshev_kernel()              # optional faster kernel
+loglik_fast(mz, NULL, nu = 4, p = 0.05, kernel = kernel)
+
+quartets <- simulate_quartets(L = 1.5, nu = 4, p = 0.05, n = 200, seed = 7)
+loglik_quartet(quartets, 1.5, nu = 4, p = 0.05)
+
+# Long-format data (one row per crossover; NA position for a meiosis without crossovers)
+meiosis_list(position = c(0.2, 0.9, NA, 0.5), meiosis = c("a", "a", "b", "c"))
+
+# Maximum likelihood for (nu, p)
+negloglik <- function(theta) -loglik_fast(mz, NULL, nu = exp(theta[1]), p = plogis(theta[2]), kernel = kernel)
+fit <- optim(c(log(2), -2), negloglik)
+c(nu = exp(fit$par[1]), p = plogis(fit$par[2]))
+```
+
+### Modules
 
 - `cointf.fastlik`: vectorised implementation (`Meioses`, `loglik_fast`). The series functions
   for `f*`, `S*` and the integrated tail are available there too.
@@ -68,12 +144,48 @@ The gap widens with crossovers per meiosis, because xoi enumerates all 2ⁿ path
 `loglik_fast` also evaluates only the series terms that matter for each distance (about 10),
 with explicit error bounds, and computes `f*` only at gaps and `S*` only at chromosome ends.
 
-## Development
+## Development and testing
+
+All commands below run from the root of a clone. There are two test suites: one for the Python
+package (`tests/`) and one for the R interface (`r/tests/`).
+
+### Python tests
 
 ```bash
-pip install -e ".[tests]"
-pytest
+pip install -e ".[tests]"     # editable install plus pytest, pytest-cov, pytest-xdist, hypothesis
+pytest                        # full suite, about 10 s
+pytest tests/test_quartet.py  # one file
+pytest -k chebyshev           # tests whose names match a pattern
+pytest -n auto                # in parallel
+pytest --cov=cointf --cov-branch --cov-report=term-missing   # with coverage
 ```
+
+### R tests
+
+The R tests call the Python package, so first install the R package and choose which Python it
+uses. To test your local changes, point `RETICULATE_PYTHON` at the environment where you ran
+`pip install -e .` above:
+
+```bash
+Rscript -e 'install.packages(c("reticulate", "testthat"))'   # once
+R CMD INSTALL r
+export RETICULATE_PYTHON=$(which python)                      # the Python with your cointf install
+Rscript -e 'testthat::test_local("r")'                        # full R suite
+Rscript -e 'testthat::test_local("r", filter = "reticulate")' # one file (test-reticulate.R)
+```
+
+Without `RETICULATE_PYTHON`, the R package installs `cointf` from the GitHub `dev` branch, so the
+tests would run against that version rather than your local code.
+
+Two optional checks:
+
+```bash
+COINTF_TEST_INSTALL=true Rscript -e 'testthat::test_local("r")'   # also test the automatic GitHub install (needs network)
+R CMD build r && R CMD check --no-manual cointf_*.tar.gz           # full package check, including the tests
+```
+
+The R documentation in `r/man` is generated from the roxygen comments in `r/R` with
+`Rscript -e 'roxygen2::roxygenise("r")'` (needs the `roxygen2` package).
 
 Several of the coding conventions were contributed by Claude and Claude Code. As such, code and
 series truncations should be reviewed as necessary.

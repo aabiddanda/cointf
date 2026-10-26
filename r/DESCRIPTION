@@ -1,0 +1,21 @@
+Package: cointf
+Title: Fast Likelihoods for the Housworth-Stahl Model of Crossover Interference
+Version: 0.1.0
+Authors@R:
+    person("Arjun", "Biddanda", email = "aabiddanda@gmail.com", role = c("aut", "cre"))
+Description: R interface to the 'cointf' Python package, which computes exact
+    log-likelihoods of crossover positions under the two-pathway
+    (gamma interference plus Poisson escape) Housworth-Stahl model, for single
+    meioses and for phase-unknown (quartet) data, and simulates from the model.
+    The Python package is installed automatically through 'reticulate'.
+License: MIT + file LICENSE
+URL: https://github.com/aabiddanda/cointf
+BugReports: https://github.com/aabiddanda/cointf/issues
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Imports:
+    reticulate (>= 1.41)
+Suggests:
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+Config/roxygen2/version: 8.1.1
