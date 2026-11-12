@@ -17,6 +17,9 @@ repeated evaluation inside optimisers and samplers, and for parameters that vary
 | [Numerics, accuracy and speed](numerics.md) | How the series are truncated, the Chebyshev kernel, how correctness is tested, and benchmarks |
 | [Using cointf from R](r.md) | Installing the R package, how it finds Python, data conversion, an R maximum-likelihood fit |
 | [Example: maximum-likelihood fit](examples/mle.ipynb) | Estimating $\nu$ and $p$ from a dataset, with standard errors and a likelihood surface |
+| [Example: sex-specific age effects](examples/age_effects.ipynb) | Per-meiosis $\nu$ and $p$ from the parent's sex and age, fitted by maximum likelihood with tests |
+| [Example: Bayesian age effects](examples/age_mcmc.ipynb) | A Metropolis–Hastings sampler for age effects on $\nu$, with normal priors |
+| [Example: two chromosomes](examples/two_chromosomes.ipynb) | Likelihoods across chromosomes of different lengths (chr1 and chr22) |
 | [Python API](api/python.md) | Every public class and function, with parameters, return values and examples |
 | [R API](api/r.md) | Every function in the R package, generated from its help pages |
 
@@ -68,6 +71,9 @@ usage
 r
 numerics
 examples/mle
+examples/age_effects
+examples/age_mcmc
+examples/two_chromosomes
 ```
 
 ```{toctree}

@@ -149,4 +149,8 @@ Use them for spot checks, not for fitting.
 
 `cointf` provides likelihoods, not optimisers. Wrap `loglik_fast` in any optimiser; working on
 $\log \nu$ and $\operatorname{logit} p$ keeps the parameters in range. See
-[the maximum-likelihood example](examples/mle.ipynb) for a complete fit with standard errors.
+[the maximum-likelihood example](examples/mle.ipynb) for a complete fit with standard errors,
+[the age-effects example](examples/age_effects.ipynb) for a regression on parental sex and age,
+[the Metropolis–Hastings example](examples/age_mcmc.ipynb) for a Bayesian version, and
+[the two-chromosome example](examples/two_chromosomes.ipynb) for data on chromosomes of
+different lengths. The examples need `pip install -e ".[examples]"` (Jupyter, matplotlib and tqdm).

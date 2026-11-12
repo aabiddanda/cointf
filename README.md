@@ -66,6 +66,10 @@ for Python, or `remotes::install_github("aabiddanda/cointf", subdir = "r")` for 
   maximum-likelihood fit
 - [Example: maximum-likelihood fit of `nu` and `p`](docs/examples/mle.ipynb), with standard errors
   and profile likelihood
+- [Example: sex-specific age effects](docs/examples/age_effects.ipynb) on `nu` and `p`, with one
+  parameter value per meiosis
+- [Example: Bayesian age effects](docs/examples/age_mcmc.ipynb) with a Metropolis–Hastings sampler
+- [Example: two chromosomes](docs/examples/two_chromosomes.ipynb) of different lengths
 - API reference: [Python](docs/api/python.md) (every public class and function, from the
   docstrings) and [R](docs/api/r.md) (from the R help pages)
 
